@@ -13,16 +13,16 @@ from templater import Templater
 templater = Templater("templates")
 
 
-def generateThumbnailSize(img, width, filename):
+def generate_thumbnail_size(img, width, filename):
     thumb = resizeimage.resize_thumbnail(img, [width, width])
     thumb.save(filename, img.format)
 
 
-def generateThumbnails(artistdir, image, widths):
+def generate_thumbnails(artistdir, image, widths):
     thumbnails = {}
 
     def get_path(size):
-        return "%s/%s_%s.%s" % (artistdir, image["slug"], size, image["imgext"])
+        return os.path.join(artistdir, "%s_%s.%s" % (image["slug"], size, image["imgext"]))
 
     # Copy full image file
     fullpath = get_path("full")
@@ -33,7 +33,7 @@ def generateThumbnails(artistdir, image, widths):
     with Image.open(image["relpath"]) as img:
         for width in list(widths):
             filename = get_path(width)
-            generateThumbnailSize(img, width, filename)
+            generate_thumbnail_size(img, width, filename)
             thumbnails[width] = os.path.basename(filename)
 
     return thumbnails
@@ -61,13 +61,13 @@ def generate_static_site(input_dir, output_dir, limit):
     for image in data["files"]:
         artistslug = image["artist"]["slug"]
         slug = image["slug"]
-        artistdir = "%s/%s" % (output_dir, artistslug)
+        artistdir = os.path.join(output_dir, artistslug)
         if not os.path.exists(artistdir):
             os.makedirs(artistdir)
-        outfile = "%s/%s.html" % (artistdir, slug)
+        outfile = os.path.join(artistdir, "%s.html" % (slug))
 
         # Generate thumbnails
-        thumbnails = generateThumbnails(artistdir, image, [120, 512])
+        thumbnails = generate_thumbnails(artistdir, image, [120, 512])
         image["thumbnails"] = thumbnails
 
         # Write templated file
@@ -78,8 +78,8 @@ def generate_static_site(input_dir, output_dir, limit):
     # Generate artist templates
     for artist in data["artists"]:
         slug = artist["slug"]
-        artistdir = "%s/%s" % (output_dir, slug)
-        outfile = "%s/index.html" % (artistdir)
+        artistdir = os.path.join(output_dir, slug)
+        outfile = os.path.join(artistdir, "index.html")
 
         # Write templated file
         with open(outfile, "w") as f:
@@ -87,7 +87,8 @@ def generate_static_site(input_dir, output_dir, limit):
             f.write(td)
 
     # Generate index file
-    with open("%s/index.html" % output_dir, "w") as f:
+    indexfile = os.path.join(output_dir, "index.html")
+    with open(indexfile, "w") as f:
         td = templater.generate("index", **data)
         f.write(td)
 

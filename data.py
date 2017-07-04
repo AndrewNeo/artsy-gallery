@@ -43,7 +43,7 @@ def validate_file(infile, item):
                 log("A file is missing a filename")
 
             filename = f["filename"]
-            relpath = "%s/%s" % (filedir, filename)
+            relpath = os.path.join(filedir, filename)
             f["relpath"] = relpath  # TODO: Move this somewhere else!
 
             if not os.path.exists(relpath):
@@ -81,7 +81,7 @@ def load_file(filename):
 
 def update_extra(filename, item):
     filedir = os.path.dirname(filename)
-    relpath = "%s/%s" % (filedir, item["filename"])
+    relpath = os.path.join(filedir, item["filename"])
     item["relpath"] = relpath
     return item
 
@@ -104,7 +104,7 @@ def process_lockout(item, limit="*"):
 
 
 def get_artist_files(path):
-    return glob.glob(path + "/**/.art.yaml")
+    return glob.glob(os.path.join(path, "**", ".art.yaml"))
 
 
 def flatten(iterable):
