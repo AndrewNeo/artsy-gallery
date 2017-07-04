@@ -1,0 +1,16 @@
+div.row>div.minithumb {
+    height: 160px;
+    text-align: center;
+}
+
+img.minithumb {
+    max-height: 120px;
+    max-width: 120px;
+}
+
+img.bigview {
+    max-height: 512px;
+    max-width: 512px;
+    min-width: 100%;
+    min-height: auto;
+}

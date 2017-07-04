@@ -1,0 +1,45 @@
+{% extends "layout.html" %}
+{% block title %}Kauko's Gallery{% endblock %}
+{% block content %}
+    <h1>Kauko's Gallery</h1>
+
+    <h2>Files</h2>
+    <div class="row">
+        {% for file in files %}
+        <div class="col-sm-2 minithumb">
+            <img class="minithumb" src="{{file.artist.slug}}/{{file.thumbnails.120}}" /><br />
+            <a href="{{file.artist.slug}}/{{file.slug}}.html">{{file.title}} by {{file.artist.name}}</a>
+        </div>
+        {% endfor %}
+    </div>
+
+    <div class="row">
+        <div class="col-sm-6 col-lg-3">
+            <h2>Artists</h2>
+            <ul>
+                {% for artist in artists %}<li><a href="{{artist.slug}}/">{{artist.name}}</a></li>{% endfor %}
+            </ul>
+        </div>
+
+        <div class="col-sm-6 col-lg-3">
+            <h2>Tags</h2>
+            <ul>    
+                {% for tag, files in tags.items() %}<li>{{tag}}</li>{% endfor %}
+            </ul>
+        </div>
+
+        <div class="col-sm-6 col-lg-3">
+            <h2>Species</h2>
+            <ul>
+                {% for spec, files in species.items() %}<li>{{spec}}</li>{% endfor %}
+            </ul>
+        </div>
+        
+        <div class="col-sm-6 col-lg-3">
+            <h2>Characters</h2>
+            <ul>
+                {% for char, files in characters.items() %}<li>{{char}}</li>{% endfor %}
+            </ul>
+        </div>
+    </div>
+{% endblock %}
