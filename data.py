@@ -12,7 +12,7 @@ def clean_string(value):
     return clean_string_regex.sub('', value)
 
 
-def validate_file(infile, item):
+def validate_artist_file(infile, item):
     '''Validate an artist yaml file'''
     errors = []
     filedir = os.path.dirname(infile)
@@ -74,11 +74,11 @@ def validate_file(infile, item):
     return errors
 
 
-def load_file(filename):
+def load_artist_file(filename):
     with open(filename, "r") as f:
         obj = yaml.load(f.read())
         obj["files"] = list(map(lambda x: update_extra(filename, x), obj["files"]))
-        errors = validate_file(filename, obj)
+        errors = validate_artist_file(filename, obj)
         return (obj, errors)
 
 
@@ -110,6 +110,69 @@ def get_artist_files(path):
     return glob.glob(os.path.join(path, "**", ".art.yaml"))
 
 
+def validate_characters_file(infile, item):
+    errors = []
+
+    def log(msg):
+        errors.append("Characters file: {}".format(msg))
+
+    if not isinstance(item, dict):
+        log("is not dict")
+
+    if "species" not in item:
+        log("Missing species section")
+    else:
+        species = item["species"]
+
+    if "characters" not in item:
+        log("Missing characters section")
+    else:
+        characters = item["characters"]
+
+        for char_name, v in characters.items():
+            def sublog(msg):
+                log("Character {0} {1}".format(char_name, msg))
+
+            if not isinstance(v, dict):
+                sublog("is not dict")
+            
+            if "name" not in v:
+                sublog("is missing name")
+
+            if "owner" not in v:
+                sublog("is missing owner")
+
+            if "links" in v and not isinstance(v["links"], dict):
+                sublog("links are not dict")
+
+            if "species" not in v:
+                sublog("is missing species")
+
+            # Validate species node
+            for species, s in v["species"].items():
+                if s is None:
+                    # Allowed to be empty
+                    continue
+
+                def sublog2(msg):
+                    sublog("species {0} {1}".format(species, msg))
+
+                if "refsheet" in s and not isinstance(s["refsheet"], dict):
+                    sublog2("refsheets are not dict")
+                
+                if "subforms" in s and not isinstance(s["subforms"], dict):
+                    sublog2("subforms are not dict")
+
+    return errors
+
+
+def load_character_file(filename):
+    with open(filename, "r") as f:
+        obj = yaml.load(f.read())
+        errors = validate_characters_file(filename, obj)
+        return (obj, errors)
+
+
 def flatten(iterable):
     return [item for sublist in iterable for item in sublist]
 
@@ -120,11 +183,23 @@ def flatmap(func, *iterable):
 
 def get_art_data(path, limit):
     '''Get some art data.'''
+    # Artist directory files
     artist_files = get_artist_files(path)
-    artist_list = map(load_file, artist_files)
-    (artist_list, errors) = zip(*list(artist_list))
+    artist_list = map(load_artist_file, artist_files)
+    (artist_list, artist_errors) = zip(*list(artist_list))
+    artist_errors = list(flatten(filter(None, artist_errors)))
 
-    errors = list(flatten(filter(None, errors)))
+    # Character list
+    (character_list, character_errors) = load_character_file(os.path.join(path, ".characters.yaml"))
+    species_key = character_list["species"]
+    character_list = character_list["characters"]
+
+    character_key = {}
+    for c, v in character_list.items():
+        character_key[c] = v["name"]
+
+    # Handle errors
+    errors = artist_errors + character_errors
     if len(errors) > 0:
         return (None, errors)
 
@@ -147,11 +222,81 @@ def get_art_data(path, limit):
     artists = list(filter(None, map(artist_handler, artist_list)))
 
     # Files
+    used_specs = []
+
+    def get_char(f, cn):
+        split = cn.split("#")
+        subform_str = None
+
+        def log(msg):
+            errors.append("File {0} {1}".format(f["filename"], msg))
+
+        if len(split) == 1:
+            log("missing split tag for character {}".format(cn))
+            return None
+        if len(split) > 1:
+            name = split[0]
+            species_str = split[1]
+        if len(split) > 2:
+            subform_str = split[2]
+
+        if name not in character_list:
+            log("using undefined character {0}".format(name))
+            return None
+
+        character = character_list[name]
+
+        if species_str not in character["species"]:
+            log("using undefined species {1} for {0}".format(name, species_str))
+            return None
+
+        if character["species"][species_str] is None:
+            character["species"][species_str] = {}
+        species = character["species"][species_str]
+
+        subform = None
+        used_specs.append(species)
+
+        if subform_str:
+            if "subforms" not in species:
+                log("missing subforms section for {0} {1}".format(name, species_str))
+                return None
+
+            if subform_str not in species["subforms"]:
+                log("using undefined subform {2} for {0} {1}".format(name, species_str, subform_str))
+                return None
+
+            subform = species["subforms"][subform_str]
+            if "images" not in subform:
+                subform["images"] = []
+            subform["images"].append(f)
+
+            used_specs.append(species)
+        else:
+            if "images" not in species:
+                species["images"] = []
+            species["images"].append(f)
+
+        return {
+            "character": character,
+            "species": species,
+            "subform": subform,
+            "character_id": name,
+            "species_id": species_str,
+            "subform_id": subform_str,
+            "has_subform": subform is not None
+        }
+
     def file_handler(item):
         artist = item["artist"]
 
         def inner_handler(f):
             f["artist"] = artist_map[artist["name"]]
+            characters = f["characters"]
+            if not isinstance(characters, list):
+                characters = [characters]
+
+            f["characters"] = list(map(lambda x: get_char(f, x), characters))
             f["outputfile"] = "{0}_{1}".format(artist["slug"], f["slug"])  # TODO: Different hash
             img_fn, img_ext = os.path.splitext(f["filename"])
             f["imgext"] = img_ext[1:]
@@ -161,10 +306,15 @@ def get_art_data(path, limit):
 
     files = list(filter(None, flatmap(file_handler, artist_list)))
 
+    # Check for errors again
+    if len(errors) > 0:
+        return (None, errors)
+
+    # TODO: Remap refsheet files to character species
+
     # Tags, species and characters
     tag_list = {}
     species_list = {}
-    character_list = {}
 
     def add_dict(dic, key, value):
         if key not in dic:
@@ -177,29 +327,26 @@ def get_art_data(path, limit):
                 species_name = t[8:]
                 add_dict(species_list, species_name, f)
             else:
+                if "#" in t:
+                    st = t.split("#", 1)[0]
+                    add_dict(tag_list, st, f)
                 add_dict(tag_list, t, f)
 
-        chars = f["characters"]
-        if isinstance(chars, str):
-            add_dict(character_list, chars, f)
-        elif isinstance(chars, list):
-            for c in chars:
-                add_dict(character_list, c, f)
-        else:
-            raise Exception("Unable to process non-string or list characters")
+        # Add image to character
+        for c in f["characters"]:
+            if c["subform"]:
+                c["subform"]["images"].append(f)
+            else:
+                c["species"]["images"].append(f)
+            
+            add_dict(species_list, c["species_id"], f)
 
-        # TODO: Pull in the character data file and tie species
+    # TODO: Remove characters with no attached images
 
-    for c, f in character_list.items():
-        if "#" in c:
-            species = c.split("#")[1]  # Ignore anything after for this use case
-            add_dict(species_list, species, f)
-
-    # TODO: Check for duplicate artists or files
-
+    # Function output
     output = {
         "artists": artists, "files": files, "tags": tag_list,
-        "species": species_list, "characters": character_list
+        "species": species_list, "species_key": species_key,
+        "characters": character_list, "character_key": character_key
     }
-
     return (output, errors)
