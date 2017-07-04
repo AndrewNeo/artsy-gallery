@@ -22,7 +22,7 @@ def generate_thumbnails(artistdir, image, widths):
     thumbnails = {}
 
     def get_path(size):
-        return os.path.join(artistdir, "%s_%s.%s" % (image["slug"], size, image["imgext"]))
+        return os.path.join(artistdir, "{slug}_{size}.{imgext}".format(size=size, **image))
 
     # Copy full image file
     fullpath = get_path("full")
@@ -59,12 +59,10 @@ def generate_static_site(input_dir, output_dir, limit):
 
     # Generate image templates
     for image in data["files"]:
-        artistslug = image["artist"]["slug"]
-        slug = image["slug"]
-        artistdir = os.path.join(output_dir, artistslug)
+        artistdir = os.path.join(output_dir, image["artist"]["slug"])
         if not os.path.exists(artistdir):
             os.makedirs(artistdir)
-        outfile = os.path.join(artistdir, "%s.html" % (slug))
+        outfile = os.path.join(artistdir, "{}.html".format(image["slug"]))
 
         # Generate thumbnails
         thumbnails = generate_thumbnails(artistdir, image, [120, 512])
@@ -77,9 +75,7 @@ def generate_static_site(input_dir, output_dir, limit):
 
     # Generate artist templates
     for artist in data["artists"]:
-        slug = artist["slug"]
-        artistdir = os.path.join(output_dir, slug)
-        outfile = os.path.join(artistdir, "index.html")
+        outfile = os.path.join(output_dir, artist["slug"], "index.html")
 
         # Write templated file
         with open(outfile, "w") as f:

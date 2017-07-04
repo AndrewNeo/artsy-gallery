@@ -19,7 +19,7 @@ def validate_file(infile, item):
     artistdir = os.path.basename(filedir)
 
     def log(msg):
-        errors.append("%s: %s" % (artistdir, msg))
+        errors.append("{0}: {1}".format(artistdir, msg))
 
     if "artist" not in item:
         log("Missing artist section")
@@ -46,27 +46,30 @@ def validate_file(infile, item):
             relpath = os.path.join(filedir, filename)
             f["relpath"] = relpath  # TODO: Move this somewhere else!
 
+            def sublog(msg):
+                log("File {0} {1}".format(filename, msg))
+
             if not os.path.exists(relpath):
-                log("File %s is missing" % (filename))
+                sublog("is missing")
 
             if "date" not in f:
-                log("File %s is missing a date" % (filename))
+                sublog("is missing a date")
 
             if "slug" not in f:
-                log("File %s is missing a slug" % (filename))
+                sublog("is missing a slug")
 
             if "title" not in f:
-                log("File %s is missing a title" % (filename))
+                sublog("is missing a title")
 
             if "tags" not in f:
-                log("File %s is missing tags" % (filename))
+                sublog("is missing tags")
             elif not isinstance(f["tags"], list):
-                log("File %s tags are not an array" % (filename))
+                sublog("tags are not an array")
 
             if "characters" not in f:
-                log("File %s is missing characters" % (filename))
+                log("is missing characters")
             elif not isinstance(f["characters"], str) and not isinstance(f["characters"], list):
-                log("File %s characters are in an invalid format" % (filename))
+                log("characters are in an invalid format")
 
     return errors
 
@@ -121,6 +124,10 @@ def get_art_data(path, limit):
     artist_list = map(load_file, artist_files)
     (artist_list, errors) = zip(*list(artist_list))
 
+    errors = list(flatten(filter(None, errors)))
+    if len(errors) > 0:
+        return (None, errors)
+
     # Handle the limit/lockout
     for i in artist_list:
         i["files"] = list(filter(None, map(lambda x: process_lockout(x, limit), i["files"])))
@@ -145,7 +152,7 @@ def get_art_data(path, limit):
 
         def inner_handler(f):
             f["artist"] = artist_map[artist["name"]]
-            f["outputfile"] = "%s_%s" % (artist["slug"], f["slug"])  # TODO: Different hash
+            f["outputfile"] = "{0}_{1}".format(artist["slug"], f["slug"])  # TODO: Different hash
             img_fn, img_ext = os.path.splitext(f["filename"])
             f["imgext"] = img_ext[1:]
             return f
@@ -194,6 +201,5 @@ def get_art_data(path, limit):
         "artists": artists, "files": files, "tags": tag_list,
         "species": species_list, "characters": character_list
     }
-    errors = list(flatten(filter(None, errors)))
 
     return (output, errors)
