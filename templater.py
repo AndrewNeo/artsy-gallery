@@ -1,5 +1,6 @@
 from jinja2 import Environment, FileSystemLoader
 
+
 class Templater(object):
     '''Build templates.'''
 

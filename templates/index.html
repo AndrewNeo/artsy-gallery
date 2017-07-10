@@ -7,8 +7,8 @@
     <div class="row">
         {% for file in files %}
         <div class="col-sm-2 minithumb">
-            <img class="minithumb" src="{{file.artist.slug}}/{{file.thumbnails.120}}" /><br />
-            <a href="{{file.artist.slug}}/{{file.slug}}.html">{{file.title}} by {{file.artist.name}}</a>
+            <img class="minithumb" src="{{file.artist.get_slug()}}/{{file.thumbnails.120}}" /><br />
+            <a href="{{file.artist.get_slug()}}/{{file.slug}}.html">{{file.title}} by {{file.artist.name}}</a>
         </div>
         {% endfor %}
     </div>
@@ -17,7 +17,7 @@
         <div class="col-sm-6 col-lg-3">
             <h2>Artists</h2>
             <ul>
-                {% for artist in artists %}<li><a href="{{artist.slug}}/">{{artist.name}}</a></li>{% endfor %}
+                {% for artist in artists %}<li><a href="{{artist.get_slug()}}/">{{artist.name}}</a></li>{% endfor %}
             </ul>
         </div>
 

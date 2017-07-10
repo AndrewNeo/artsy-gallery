@@ -1,16 +1,16 @@
 {% extends "layout.html" %}
-{% block title %}Kauko's art from {{name}}{% endblock %}
+{% block title %}Kauko's art from {{artist.name}}{% endblock %}
 {% block content %}
-    <h1>{{name}}</h1>
-    {% if links %}
+    <h1>{{artist.name}}</h1>
+    {% if artist.links %}
         <h2>Links</h2>
-        {% if links.fa %}<p><a href="https://www.furaffinity.net/user/{{links.fa}}/">FurAffinity</a></p>{% endif %}
-        {% if links.weasyl %}<p><a href="https://www.weasyl.com/~{{links.weasyl}}">Weasyl</a></p>{% endif %}
+        {% if artist.links.fa %}<p><a href="https://www.furaffinity.net/user/{{artist.links.fa}}/">FurAffinity</a></p>{% endif %}
+        {% if artist.links.weasyl %}<p><a href="https://www.weasyl.com/~{{artist.links.weasyl}}">Weasyl</a></p>{% endif %}
     {% endif %}
     
     <h2>Art</h2>
     <div class="row">
-        {% for file in images %}
+        {% for file in artist.get_files(limit) %}
         <div class="col-sm-2 minithumb">
             <img class="minithumb" src="{{file.thumbnails.120}}" /><br />
             <a href="{{file.slug}}.html">{{file.title}}</a>

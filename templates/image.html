@@ -3,30 +3,30 @@
     {% if linkobj.fa %}<p><a href="https://www.furaffinity.net/view/{{ linkobj.fa }}/">FurAffinity</a></p>{% endif %}
     {% if linkobj.weasyl %}<p><a href="{{ linkobj.weasyl }}">Weasyl</a></p>{% endif %}
 {% endmacro %}
-{% block title %}{{title}} by {{artist.name}}{% endblock %}
+{% block title %}{{title}} by {{image.artist.name}}{% endblock %}
 {% block content %}
-    <h1>{{title}} by {{artist.name}}</h1>
+    <h1>{{image.title}} by {{image.artist.name}}</h1>
 
     <div class="row">
         <div class="col-sm-12 col-md-7 col-lg-6">
-            <p><a href="{{thumbnails.full}}"><img src="{{thumbnails.512}}" /></a></p>
-            <p>{{description}}</p>
+            <p><a href="{{image.thumbnails.full}}"><img src="{{image.thumbnails.512}}" /></a></p>
+            {% if image.description %}<p>{{image.description}}</p>{% endif %}
         </div>
         <div class="col-sm-12 col-md-5 col-lg-6">
             <h4>Tags</h4>
             <ul>
-                {% for tag in tags %}
+                {% for tag in image.tags %}
                 <li>{{tag}}</li>
                 {% endfor %}
             </ul>
 
             {% if artist_links %}
                 <h4>Artist's links</h4>
-                {{ linkbox(artist_links) }}
+                {{ linkbox(image.artist_links) }}
             {% endif %}
             {% if my_links %}
                 <h4>My links</h4>
-                {{ linkbox(my_links) }}
+                {{ linkbox(image.my_links) }}
             {% endif %}
         </div>
     </div>

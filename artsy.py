@@ -20,17 +20,18 @@ def generate_thumbnail_size(img, width, filename):
 
 def generate_thumbnails(artistdir, image, widths):
     thumbnails = {}
+    relpath = image.get_relative_path()
 
     def get_path(size):
-        return os.path.join(artistdir, "{slug}_{size}.{imgext}".format(size=size, **image))
+        return os.path.join(artistdir, "{slug}_{size}.{imgext}".format(size=size, slug=image.slug, imgext=image.get_file_ext()))
 
     # Copy full image file
     fullpath = get_path("full")
-    shutil.copy2(image["relpath"], fullpath)
+    shutil.copy2(relpath, fullpath)
     thumbnails["full"] = os.path.basename(fullpath)
 
     # Generate actual thumbnails
-    with Image.open(image["relpath"]) as img:
+    with Image.open(relpath) as img:
         for width in list(widths):
             filename = get_path(width)
             generate_thumbnail_size(img, width, filename)
@@ -40,15 +41,10 @@ def generate_thumbnails(artistdir, image, widths):
 
 
 # TODO: Don't update files that don't need updating
-def generate_static_site(input_dir, output_dir, limit):
+def generate_static_site(input_dir, output_dir, limit="*"):
     '''Output templates to filesystem.'''
     # Get data and fail on error
-    data, errors = get_art_data(input_dir, limit)
-    if len(errors) > 0:
-        print("Got parser errors")
-        for error in errors:
-            print(error)
-        return False
+    data = get_art_data(input_dir, limit)
 
     # Recreate the output directory
     if os.path.exists(output_dir):
@@ -59,33 +55,32 @@ def generate_static_site(input_dir, output_dir, limit):
 
     # Generate image templates
     for image in data["files"]:
-        artistdir = os.path.join(output_dir, image["artist"]["slug"])
+        artistdir = os.path.join(output_dir, image.artist.get_slug())
         if not os.path.exists(artistdir):
             os.makedirs(artistdir)
-        outfile = os.path.join(artistdir, "{}.html".format(image["slug"]))
+        outfile = os.path.join(artistdir, "{}.html".format(image.slug))
 
         # Generate thumbnails
-        thumbnails = generate_thumbnails(artistdir, image, [120, 512])
-        image["thumbnails"] = thumbnails
+        image.thumbnails = generate_thumbnails(artistdir, image, [120, 512])
 
         # Write templated file
         with open(outfile, "w") as f:
-            td = templater.generate("image", **image)
+            td = templater.generate("image", image=image)
             f.write(td)
 
     # Generate artist templates
     for artist in data["artists"]:
-        outfile = os.path.join(output_dir, artist["slug"], "index.html")
+        outfile = os.path.join(output_dir, artist.get_slug(), "index.html")
 
         # Write templated file
         with open(outfile, "w") as f:
-            td = templater.generate("artist", **artist)
+            td = templater.generate("artist", artist=artist, limit=limit)
             f.write(td)
 
     # Generate index file
     indexfile = os.path.join(output_dir, "index.html")
     with open(indexfile, "w") as f:
-        td = templater.generate("index", **data)
+        td = templater.generate("index", limit=limit, **data)
         f.write(td)
 
     return True
