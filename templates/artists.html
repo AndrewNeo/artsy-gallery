@@ -1,0 +1,16 @@
+{% extends "layout.html" %}
+{% block title %}Kauko's art from all artists{% endblock %}
+{% block content %}
+    {% for artist in artists %}
+        <h2 id="{{artist.get_slug()}}"><a href="{{artist.get_slug()}}/">{{artist.name}}</a></h2>
+        
+        <div class="row">
+            {% for file in artist.get_files(limit=limit) %}
+            <div class="col-sm-2 minithumb">
+                <img class="minithumb" src="{{artist.get_slug()}}/{{file.thumbnails.120}}" /><br />
+                <a href="{{artist.get_slug()}}/{{file.slug}}.html">{{file.title}}</a>
+            </div>
+            {% endfor %}
+        </div>
+    {% endfor %}
+{% endblock %}

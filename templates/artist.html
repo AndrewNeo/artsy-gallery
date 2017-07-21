@@ -10,7 +10,7 @@
     
     <h2>Art</h2>
     <div class="row">
-        {% for file in artist.get_files(limit) %}
+        {% for file in artist.get_files(limit=limit) %}
         <div class="col-sm-2 minithumb">
             <img class="minithumb" src="{{file.thumbnails.120}}" /><br />
             <a href="{{file.slug}}.html">{{file.title}}</a>

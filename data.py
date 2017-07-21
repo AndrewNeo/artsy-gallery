@@ -3,7 +3,7 @@ import glob
 import itertools
 import yaml
 import cattr
-from models import ArtistFile, CharacterFile
+from models import ArtistFile, MetadataFile, TagContainer, SpeciesContainer, sort_files
 
 
 def load_artist_file(filename):
@@ -19,11 +19,11 @@ def get_artist_files(path):
     return glob.glob(os.path.join(path, "**", ".art.yaml"))
 
 
-def load_character_file(filename):
-    '''Load a character file.'''
+def load_metadata_file(filename):
+    '''Load a metadata file.'''
     with open(filename, "r") as f:
         obj = yaml.load(f.read())
-        obj = cattr.structure(obj, CharacterFile)
+        obj = cattr.structure(obj, MetadataFile)
         obj.prepare()
         return obj
 
@@ -46,54 +46,33 @@ def get_art_data(path, limit):
     artists = list(map(lambda x: x.artist, art_data))
 
     # Image files
-    files = list(filter(lambda x: x.is_visible(limit), flatmap(lambda x: x.files, art_data)))
+    files = list(sort_files(filter(lambda x: x.is_visible(limit), flatmap(lambda x: x.files, art_data)), "name"))
 
     # Character list
-    character_data = load_character_file(os.path.join(path, ".characters.yaml"))
-    species_key = character_data.species
-    character_list = character_data.characters
+    metadata = load_metadata_file(os.path.join(path, ".metadata.yaml"))
+    metadata.prepare_files(files)
 
-    character_key = {}
-    for c, v in character_list.items():
-        character_key[c] = v.name
+    species_key = metadata.species
+    character_list = metadata.characters
+    tag_key = metadata.tags
 
     # Tags, species and characters
     tag_list = {}
     species_list = {}
 
-    def add_dict(dic, key, value):
-        if key not in dic:
-            dic[key] = []
-        dic[key].append(value)
+    tag_list = TagContainer(tag_key)
+    tag_list.prepare(files)
 
-    for f in files:
-        f.character_list = list(map(character_data.find_character, f.characters))
-
-        # Add file to character
-        for c in f.character_list:
-            c.files.append(f)
-            if not c.is_subform():
-                add_dict(species_list, c.localid, f)
-
-        # Handle file tags
-        for t in f.tags:
-            meta_val = None
-            if "#" in t:
-                tag_name, meta_val = t.split("#", 2)
-            else:
-                tag_name = t
-
-            # Add file to species list
-            if tag_name == "species":
-                add_dict(species_list, meta_val, f)
-
-            add_dict(tag_list, t, f)
+    species_list = SpeciesContainer(species_key)
+    species_list.prepare(tag_list, character_list)
 
     # Function output
     output = {
-        "artists": artists, "files": files, "tags": tag_list,
-        "species": species_list, "species_key": species_key,
-        "characters": character_list, "character_key": character_key
+        "artists": artists,
+        "files": files,
+        "tags": tag_list,
+        "species": species_list,
+        "characters": character_list
     }
 
     return output

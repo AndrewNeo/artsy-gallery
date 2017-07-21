@@ -9,7 +9,7 @@ from artsy import generate_static_site
 # TODO: Move this to command line arguments
 indir = "testdata"
 outdir = "output"
-limit = "*"
+limit = None
 
 # Generate
 print("Generating content...")

@@ -20,11 +20,11 @@
                 {% endfor %}
             </ul>
 
-            {% if artist_links %}
+            {% if image.artist_links %}
                 <h4>Artist's links</h4>
                 {{ linkbox(image.artist_links) }}
             {% endif %}
-            {% if my_links %}
+            {% if image.my_links %}
                 <h4>My links</h4>
                 {{ linkbox(image.my_links) }}
             {% endif %}

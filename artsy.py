@@ -40,6 +40,12 @@ def generate_thumbnails(artistdir, image, widths):
     return thumbnails
 
 
+def write_page(template, outfile, **kwargs):
+    with open(outfile, "w") as f:
+        td = templater.generate(template, **kwargs)
+        f.write(td)
+
+
 # TODO: Don't update files that don't need updating
 def generate_static_site(input_dir, output_dir, limit="*"):
     '''Output templates to filesystem.'''
@@ -64,24 +70,21 @@ def generate_static_site(input_dir, output_dir, limit="*"):
         image.thumbnails = generate_thumbnails(artistdir, image, [120, 512])
 
         # Write templated file
-        with open(outfile, "w") as f:
-            td = templater.generate("image", image=image)
-            f.write(td)
+        write_page("image", outfile, image=image)
 
     # Generate artist templates
+    artistsfile = os.path.join(output_dir, "all_artists.html")
+    write_page("artists", artistsfile, artists=data["artists"], limit=limit)
+
     for artist in data["artists"]:
         outfile = os.path.join(output_dir, artist.get_slug(), "index.html")
 
         # Write templated file
-        with open(outfile, "w") as f:
-            td = templater.generate("artist", artist=artist, limit=limit)
-            f.write(td)
+        write_page("artist", outfile, artist=artist, limit=limit)
 
     # Generate index file
     indexfile = os.path.join(output_dir, "index.html")
-    with open(indexfile, "w") as f:
-        td = templater.generate("index", limit=limit, **data)
-        f.write(td)
+    write_page("index", indexfile, limit=limit, **data)
 
     return True
 

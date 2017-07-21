@@ -15,7 +15,7 @@
 
     <div class="row">
         <div class="col-sm-6 col-lg-3">
-            <h2>Artists</h2>
+            <h2><a href="all_artists.html">Artists</a></h2>
             <ul>
                 {% for artist in artists %}<li><a href="{{artist.get_slug()}}/">{{artist.name}}</a></li>{% endfor %}
             </ul>
@@ -23,22 +23,22 @@
 
         <div class="col-sm-6 col-lg-3">
             <h2>Tags</h2>
-            <ul>    
-                {% for tag, files in tags.items() %}<li>{{tag}}</li>{% endfor %}
+            <ul>
+                {% for tag_name, tag in tags.items() %}<li{% if tag.description %} title="{{tag.description}}"{% endif %}>{{tag_name}}</li>{% endfor %}
             </ul>
         </div>
 
         <div class="col-sm-6 col-lg-3">
             <h2>Species</h2>
             <ul>
-                {% for spec, files in species.items() %}<li>{{species_key[spec]}}</li>{% endfor %}
+                {% for species_slug, spec in species.items() %}<li>{% if spec.description %}{{spec.description}}{% else %}{{species_slug}}{% endif %}</li>{% endfor %}
             </ul>
         </div>
         
         <div class="col-sm-6 col-lg-3">
             <h2>Characters</h2>
             <ul>
-                {% for char, files in characters.items() %}<li>{{character_key[char]}}</li>{% endfor %}
+                {% for char_slug, char in characters.items() %}<li>{{char.name}}</li>{% endfor %}
             </ul>
         </div>
     </div>
