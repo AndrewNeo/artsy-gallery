@@ -1,4 +1,4 @@
-{% extends "layout.html" %}
+{% extends "_layout.html" %}
 {% block title %}Kauko's art from {{artist.name}}{% endblock %}
 {% block content %}
     <h1>{{artist.name}}</h1>
@@ -9,12 +9,5 @@
     {% endif %}
     
     <h2>Art</h2>
-    <div class="row">
-        {% for file in files %}
-        <div class="col-sm-2 minithumb">
-            <img class="minithumb" src="{{thumbnails[file.slug].120}}" /><br />
-            <a href="{{file.slug}}.html">{{file.title}}</a>
-        </div>
-        {% endfor %}
-    </div>
+    {{mh.thumbblock(files, thumbnails, inartistdir=True, titleonly=True)}}
 {% endblock %}

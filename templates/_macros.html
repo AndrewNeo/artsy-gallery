@@ -1,0 +1,13 @@
+{% macro thumbnail(file, thumbnails, rootprefix="", inartistdir=False, titleonly=False) %}
+<div class="col-sm-2 minithumb">
+    <img class="minithumb" src="{{rootprefix}}{% if not inartistdir %}{{file.get_artist().get_slug()}}/{% endif %}{{thumbnails[file.slug].120}}" /><br />
+    <a href="{{rootprefix}}{% if not inartistdir %}{{file.get_artist().get_slug()}}/{% endif %}{{file.slug}}.html">{{file.title}}{% if not titleonly %} by {{file.get_artist().name}}{% endif %}</a>
+</div>
+{%- endmacro %}
+{% macro thumbblock(files, thumbnails) %}
+<div class="row">
+    {% for file in files %}
+        {{thumbnail(file, thumbnails, **kwargs)}}
+    {% endfor %}
+</div>
+{%- endmacro %}

@@ -82,6 +82,7 @@ def generate_static_site(input_dir, output_dir, limit="*"):
     all_artists = list(data.get_all_artists())
     use_artists = []
 
+    # Generate image and artist templates
     for artist_file in all_artists:
         files = list(artist_file.get_files(limit=limit))
         if len(files) == 0:
@@ -118,9 +119,28 @@ def generate_static_site(input_dir, output_dir, limit="*"):
 
         use_artists.append(artistout)
 
-    # Generate all-artist templates
+    # Generate all-artists template
     artistsfile = os.path.join(output_dir, "all_artists.html")
     write_page("artists", artistsfile, artists=use_artists, limit=limit, thumbnails=thumbnails)
+
+    # Generate tag templates
+    use_tags = list(sorted(data.get_all_tags(limit=limit, ignore="species")))
+
+    tagsdir = os.path.join(output_dir, "_tags")
+    if not os.path.exists(tagsdir):
+        os.makedirs(tagsdir)
+
+    collected_tags = {}
+    for t in use_tags:
+        files = data.get_files_by_tag(t, limit=limit)
+        collected_tags[t] = files
+
+        outfile = os.path.join(tagsdir, "{}.html".format(t.replace("#", "_")))
+        write_page("tag", outfile, tag=t, files=files, thumbnails=thumbnails)
+
+    # Generate all-tags template
+    tagfile = os.path.join(output_dir, "all_tags.html")
+    write_page("tags", tagfile, tags=collected_tags, thumbnails=thumbnails, get_tag_details=data.get_tag_details)
 
     # Collect unique characters
     chars = set(map(lambda x: x.split("#")[0], data.get_all_characters(limit=limit)))
@@ -129,7 +149,7 @@ def generate_static_site(input_dir, output_dir, limit="*"):
     jsonfile = os.path.join(output_dir, "data.json")
     jsondata = {
         "data": use_artists,
-        "tags": list(sorted(data.get_all_tags(limit=limit, ignore="species"))),
+        "tags": use_tags,
         "tag_descriptions": data.tag_key,
         "species": list(sorted(data.get_all_species(limit=limit))),
         "species_descriptions": data.species_key,
@@ -154,11 +174,7 @@ def generate_static_site(input_dir, output_dir, limit="*"):
 
     write_page("index", indexfile, **indexdata)
 
-    return True
-
 
 if __name__ == "__main__":
-    if generate_static_site("testdata", "output"):
-        print("Files written.")
-    else:
-        print("Failed with errors.")
+    generate_static_site("testdata", "output")
+    print("Files written.")
