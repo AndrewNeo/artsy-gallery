@@ -1,11 +1,9 @@
 {
-    "execMap": {
-        "py": "python"
-    },
     "ignore": [
         "output",
         "ENV",
         ".git"
     ],
-    "ext": "py yaml html css"
+    "ext": "py yaml html css",
+    "delay": 3
 }

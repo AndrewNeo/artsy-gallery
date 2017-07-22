@@ -1,6 +1,7 @@
 import re
 import os
 import functools
+import itertools
 import attr
 import cattr
 from cattr.vendor.typing import List, Dict, Optional
@@ -41,11 +42,8 @@ def autosort(f):
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
         output = f(*args, **kwargs)
-        if "sort" in kwargs:
-            sval = kwargs["sort"]
-            return sort_files(output, sval)
-        else:
-            return sort_files(output)
+        sval = kwargs["sort"] if "sort" in kwargs else None
+        return sort_files(output, sval)
     return wrapper
 
 
@@ -65,12 +63,8 @@ def autovisfilter(f):
     return wrapper
 
 
-def create_extra_attr(default=None, repr=False):
-    return attr.ib(init=False, repr=repr, cmp=False, default=default)
-
-
-def flatmap(func, *iterable):
-    return itertools.chain.from_iterable(map(func, *iterable))
+def flatmap(func, iterable):
+    return itertools.chain.from_iterable(map(func, iterable))
 
 
 # Classes
@@ -95,16 +89,8 @@ class Artist(object):
     name = cattr.typed(str)
     links = cattr.typed(Optional[UserLinks], default=None)
 
-    # Extra attributes
-    artist_file = create_extra_attr()  # Link to parent ArtistFile
-
     def get_slug(self):
         return clean_string(self.name.lower())
-
-    @autosort
-    @autovisfilter
-    def get_files(self, sort=None, limit=None):
-        return self.artist_file.files
 
 
 def make_list(x):
@@ -126,20 +112,18 @@ class ArtistImage(object):
     my_links = cattr.typed(Optional[ImageLinks], default=None)
     artist_links = cattr.typed(Optional[ImageLinks], default=None)
 
-    # Extra attributes
-    artist_file = create_extra_attr()  # Link to parent ArtistFile
-    artist = create_extra_attr(repr=True)  # Link to parent Artist
-    character_list = create_extra_attr(default=attr.Factory(list))  # List of Character attached to this
-    tag_list = create_extra_attr(default=attr.Factory(list))  # List of Tag attached to this
-    species_list = create_extra_attr(default=attr.Factory(list))  # List of Species attached to this
-    thumbnails = create_extra_attr(default=attr.Factory(dict))  # Generated thumbnails
+    def get_artist(self):
+        return self._artist
+
+    def set_artist(self, artist):
+        self._artist = artist
 
     def get_file_ext(self):
         img_fn, img_ext = os.path.splitext(self.filename)
         return img_ext[1:]
 
-    def get_relative_path(self):
-        return os.path.join(self.artist_file.path, self.filename)
+    def get_thumbnail_name(self, size):
+        return "{slug}_{size}.{ext}".format(size=size, slug=self.slug, ext=self.get_file_ext())
 
     def is_visible(self, limit=None):
         if limit == "*":
@@ -158,32 +142,13 @@ class ArtistFile(object):
     artist = cattr.typed(Artist)
     files = cattr.typed(List[ArtistImage])
 
-    # Extra attributes
-    path = create_extra_attr()
-
     def prepare(self, filename):
-        '''Process parent-links and add metadata.'''
-        self.path = os.path.dirname(filename)
-        self.artist.artist_file = self
-
+        self._reldir = os.path.dirname(filename)
         for f in self.files:
-            f.artist_file = self
-            f.artist = self.artist
+            f.set_artist(self.artist)
 
-
-@attr.s
-class CharacterSpeciesSubform(object):
-    refsheet = cattr.typed(Optional[Dict[str, str]], default=None)
-    description = cattr.typed(Optional[str], default=None)
-
-    # Extra attributes
-    localid = create_extra_attr()
-    character = create_extra_attr()
-    species = create_extra_attr()
-    files = create_extra_attr(default=attr.Factory(list))
-
-    def is_subform(self):
-        return True
+    def get_dir(self):
+        return self._reldir
 
     @autosort
     @autovisfilter
@@ -192,18 +157,32 @@ class CharacterSpeciesSubform(object):
 
 
 @attr.s
+class CharacterSpeciesSubform(object):
+    refsheet = cattr.typed(Optional[Dict[str, str]], default=None)
+    description = cattr.typed(Optional[str], default=None)
+
+    def set_character(self, character):
+        self._character = character
+    
+    def get_character(self):
+        return self._character
+
+    def set_parent(self, parent):
+        self._parent = parent
+    
+    def get_parent(self):
+        return self._parent
+
+    def is_subform(self):
+        return True
+
+
+@attr.s
 class CharacterSpecies(CharacterSpeciesSubform):
     subforms = cattr.typed(Optional[Dict[str, Optional[CharacterSpeciesSubform]]], default=None)
 
     def is_subform(self):
         return False
-
-    @autosort
-    def get_files(self, sort=None, limit=None):
-        yield from vis_filter(self.files, limit)
-        if self.subforms:
-            for sfn, sf in self.subforms.items():
-                yield from sf.get_files(limit)
 
 
 @attr.s
@@ -215,11 +194,6 @@ class Character(object):
     root = cattr.typed(Optional[bool], default=False)
     links = cattr.typed(Optional[UserLinks], default=None)
 
-    @autosort
-    def get_files(self, sort=None, limit=None):
-        for sn, s in self.species.items():
-            yield from s.get_files(limit)
-
 
 @attr.s
 class MetadataFile(object):
@@ -228,171 +202,117 @@ class MetadataFile(object):
     characters = cattr.typed(Dict[str, Character])
 
     def prepare(self):
-        '''Process parent-links and add metadata.'''
         for cn, c in self.characters.items():
             for sn, s in c.species.items():
-                if s is None:
+                if not s:
                     s = CharacterSpecies()
                     c.species[sn] = s
 
-                s.localid = sn
-                s.character = c
+                s.set_character(c)
+                s.set_parent(c)
+
                 if s.subforms:
                     for sfn, sf in s.subforms.items():
-                        if sf is None:
-                            sf = CharacterSpeciesSubform()
-                            s.subforms[sfn] = sf
+                        sf.set_character(c)
+                        sf.set_parent(s)
 
-                        sf.localid = "{0}#{1}".format(sn, sfn)
-                        sf.character = c
-                        sf.species = s
 
-    def prepare_files(self, files):
-        for f in files:
-            for cn in f.characters:
-                char = self.find_character(cn)
-                if not char:
-                    continue
+@attr.s
+class Core(object):
+    artist_files = attr.ib(convert=list)
 
-                char.files.append(f)
-                char.files.append(f.filename + " to " + char.localid)
+    tag_key = attr.ib()
+    species_key = attr.ib()
+    character_list = attr.ib()
 
-                if char not in f.character_list:
-                    f.character_list.append(char)
+    def get_all_artists(self):
+        return self.artist_files
 
-    def find_character(self, raw):
-        split = raw.split("#")
+    def get_artist_by_name(self, artist_name):
+        return next(filter(lambda a: a.artist.name == artist_name, self.artist_files), None)
+
+    @autosort
+    @autovisfilter
+    def get_files_by_artist(self, artist_name, sort=None, limit=None):
+        artist = self.get_artist_by_name(artist_name)
+        if not artist:
+            return []
+
+        return artist.files
+
+    @autosort
+    @autovisfilter
+    def get_all_files(self, sort=None, limit=None):
+        return flatmap(lambda a: a.files, self.artist_files)
+
+    def get_all_tags(self, limit=None, ignore=None):
+        tags = flatmap(lambda f: f.tags, self.get_all_files(limit=limit))
+
+        if ignore:
+            tags = itertools.filterfalse(lambda x: x.startswith("{}#".format(ignore)), tags)
+
+        return set(tags)
+
+    @autosort
+    def get_files_by_tag(self, tag_name, sort=None, limit=None):
+        return filter(lambda f: tag_name in f.tags, self.get_all_files(limit=limit))
+
+    def get_tag_details(self, tag_name):
+        return self.tag_key[tag_name] if tag_name in self.tag_key else tag_name
+
+    def get_all_species(self, limit=None):
+        def split_species(raw):
+            split = raw.split("#")
+            return split[1]
+
+        def get_species_from_file(f):
+            yield from map(split_species, f.characters)
+            yield from map(split_species, filter(lambda f: f.startswith("species#"), f.tags))
+
+        return set(flatmap(get_species_from_file, self.get_all_files(limit=limit)))
+
+    @autosort
+    def get_files_by_species(self, species_name, sort=None, limit=None):
+        all_files = list(self.get_all_files(limit=limit))
+        yield from filter(lambda f: species_name in f.species, all_files)
+        yield from filter(lambda f: "species#{}".format(species_name) in f.tags, all_files)
+
+    def get_species_details(self, species_name):
+        return self.species_key[species_name] if species_name in self.species_key else species_name
+
+    def get_all_characters(self, limit=None):
+        return set(flatmap(lambda f: f.characters, self.get_all_files(limit=limit)))
+
+    @autosort
+    def get_files_by_character(self, character_name, sort=None, limit=None):
+        return filter(lambda f: character_name in f.characters, self.get_all_files(limit=limit))  # TODO: Wrong
+
+    def get_character_details(self, character_name):
+        split = character_name.split("#")
         name = split[0]
-        species = split[1]
+        species = None
         subform = None
+        if len(split) > 1:
+            species = split[1]
         if len(split) > 2:
             subform = split[2]
 
-        for n, c in self.characters.items():
+        for n, c in self.character_list.items():
             if n == name:
+                if not species:
+                    return c
+
                 for spn, sp in c.species.items():
                     if spn == species:
-                        if subform:
-                            for sfn, sf in sp.subforms.items():
-                                if sfn == subform:
-                                    return sf
-                            return None
-                        else:
+                        if not subform:
                             return sp
+
+                        for sfn, sf in sp.subforms.items():
+                            if sfn == subform:
+                                return sf
+
+                        return None
+
                 return None
+
         return None
-
-
-@attr.s
-class Tag(object):
-    full_tag = attr.ib()
-    name = attr.ib()
-    tail = attr.ib(default=None)
-    description = attr.ib(default=None)
-    files = create_extra_attr(default=attr.Factory(list))
-
-    @autosort
-    @autovisfilter
-    def get_files(self, sort=None, limit=None):
-        return self.files
-
-
-@attr.s
-class TagContainer(object):
-    descriptions = attr.ib(repr=False, default=attr.Factory(dict))
-    tags = create_extra_attr(default=attr.Factory(list))
-
-    def get_or_create(self, fullname):
-        if fullname in self.tags:
-            return self.tags[fullname]
-
-        split = fullname.split("#")
-        name = fullname
-        tail = None
-        if len(split) > 0:
-            name = split[0]
-        if len(split) > 1:
-            tail = split[1]
-
-        desc = self.descriptions[fullname] if fullname in self.descriptions else None
-
-        nt = Tag(fullname, name, tail, desc)
-        self.tags[fullname] = nt
-        return nt
-
-    def prepare(self, files):
-        for f in files:
-            for t in f.tags:
-                nt = self.get_or_create(t)
-
-                if f not in nt.files:
-                    nt.files.append(f)
-
-                if nt not in f.tag_list:
-                    f.tag_list.append(nt)
-            
-    def items(self):
-        return self.tags.items()
-
-    def get_by_name(self, name):
-        return filter(lambda x: x.name == name, self.tags.values())
-
-    def get_files(self, name, sort=None, limit=None):
-        return self.tags[name].get_files(sort=sort, limit=limit)
-
-
-@attr.s
-class Species(object):
-    slug = attr.ib()
-    description = attr.ib(default=None)
-    files = create_extra_attr(default=attr.Factory(list))
-
-    @autosort
-    @autovisfilter
-    def get_files(self, sort=None, limit=None):
-        return self.files
-
-
-@attr.s
-class SpeciesContainer(object):
-    descriptions = attr.ib(repr=False)
-    species = create_extra_attr(default=attr.Factory(dict))
-
-    def get_or_create(self, species_name):
-        if species_name in self.species:
-            return self.species[species_name]
-
-        desc = self.descriptions[species_name] if species_name in self.descriptions else None
-
-        ns = Species(species_name, desc)
-        self.species[species_name] = ns
-        return ns
-
-    def prepare_single(self, species_name, files):
-        if not species_name:
-            return
-
-        for f in files:
-            ns = self.get_or_create(species_name)
-
-            if f not in ns.files:
-                ns.files.append(f)
-
-            if ns not in f.species_list:
-                f.species_list.append(ns)
-
-    def prepare(self, tag_container, characters):
-        # Handle species from tags
-        for t in tag_container.get_by_name("species"):
-            self.prepare_single(t.tail, t.files)
-
-        # Handle species from characters
-        for cn, c in characters.items():
-            for sn, s in c.species.items():
-                self.prepare_single(sn, s.files)
-
-    def items(self):
-        return self.species.items()
-
-    def get_files(self, name, sort=None, limit=None):
-        return self.species[name].get_files(sort=sort, limit=limit)

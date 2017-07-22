@@ -3,9 +3,11 @@
 
 import os
 import shutil
+import json
 from distutils.dir_util import copy_tree
 from resizeimage import resizeimage
 from PIL import Image
+import cattr
 from data import get_art_data
 from templater import Templater
 
@@ -18,12 +20,12 @@ def generate_thumbnail_size(img, width, filename):
     thumb.save(filename, img.format)
 
 
-def generate_thumbnails(artistdir, image, widths):
+def generate_thumbnails(indir, outdir, image, widths):
     thumbnails = {}
-    relpath = image.get_relative_path()
+    relpath = os.path.join(indir, image.filename)
 
     def get_path(size):
-        return os.path.join(artistdir, "{slug}_{size}.{imgext}".format(size=size, slug=image.slug, imgext=image.get_file_ext()))
+        return os.path.join(outdir, "{slug}_{size}.{imgext}".format(size=size, slug=image.slug, imgext=image.get_file_ext()))
 
     # Copy full image file
     fullpath = get_path("full")
@@ -46,6 +48,21 @@ def write_page(template, outfile, **kwargs):
         f.write(td)
 
 
+# https://stackoverflow.com/a/27974027/151495
+def clean_empty(d):
+    if not isinstance(d, (dict, list)):
+        return d
+    if isinstance(d, list):
+        return [v for v in (clean_empty(v) for v in d) if v]
+    return {k: v for k, v in ((k, clean_empty(v)) for k, v in d.items()) if v}
+
+
+def write_json(outfile, data):
+    destdata = clean_empty(cattr.unstructure(data))
+    with open(outfile, "w") as f:
+        json.dump(destdata, f)
+
+
 # TODO: Don't update files that don't need updating
 def generate_static_site(input_dir, output_dir, limit="*"):
     '''Output templates to filesystem.'''
@@ -59,32 +76,83 @@ def generate_static_site(input_dir, output_dir, limit="*"):
     # Copy static files (and create output dir)
     copy_tree("static", output_dir)
 
-    # Generate image templates
-    for image in data["files"]:
-        artistdir = os.path.join(output_dir, image.artist.get_slug())
+    # Hold thumbnail paths
+    thumbnails = {}
+
+    all_artists = list(data.get_all_artists())
+    use_artists = []
+
+    for artist_file in all_artists:
+        files = list(artist_file.get_files(limit=limit))
+        if len(files) == 0:
+            continue
+
+        artist = artist_file.artist
+        artistdir = os.path.join(output_dir, artist.get_slug())
+
         if not os.path.exists(artistdir):
             os.makedirs(artistdir)
-        outfile = os.path.join(artistdir, "{}.html".format(image.slug))
 
-        # Generate thumbnails
-        image.thumbnails = generate_thumbnails(artistdir, image, [120, 512])
+        artistout = {
+            "artist": artist,
+            "files": []
+        }
+
+        # Generate image templates
+        for image in files:
+            outfile = os.path.join(artistdir, "{}.html".format(image.slug))
+
+            # Generate thumbnails
+            thumbnails[image.slug] = generate_thumbnails(artist_file._reldir, artistdir, image, [120, 512])
+
+            # Write templated file
+            write_page("image", outfile, artist=artist, image=image, thumbnails=thumbnails[image.slug])
+
+            artistout["files"].append(image)
+
+        # Generate artist templates
+        artistfile = os.path.join(output_dir, artist.get_slug(), "index.html")
 
         # Write templated file
-        write_page("image", outfile, image=image)
+        write_page("artist", artistfile, artist=artist, files=files, thumbnails=thumbnails)
 
-    # Generate artist templates
+        use_artists.append(artistout)
+
+    # Generate all-artist templates
     artistsfile = os.path.join(output_dir, "all_artists.html")
-    write_page("artists", artistsfile, artists=data["artists"], limit=limit)
+    write_page("artists", artistsfile, artists=use_artists, limit=limit, thumbnails=thumbnails)
 
-    for artist in data["artists"]:
-        outfile = os.path.join(output_dir, artist.get_slug(), "index.html")
+    # Collect unique characters
+    chars = set(map(lambda x: x.split("#")[0], data.get_all_characters(limit=limit)))
 
-        # Write templated file
-        write_page("artist", outfile, artist=artist, limit=limit)
+    # Generate JSON file
+    jsonfile = os.path.join(output_dir, "data.json")
+    jsondata = {
+        "data": use_artists,
+        "tags": list(sorted(data.get_all_tags(limit=limit, ignore="species"))),
+        "tag_descriptions": data.tag_key,
+        "species": list(sorted(data.get_all_species(limit=limit))),
+        "species_descriptions": data.species_key,
+        "characters": list(sorted(map(data.get_character_details, chars)))
+    }
+
+    write_json(jsonfile, jsondata)
 
     # Generate index file
     indexfile = os.path.join(output_dir, "index.html")
-    write_page("index", indexfile, limit=limit, **data)
+    indexdata = {
+        "limit": limit,
+        "thumbnails": thumbnails,
+        "files": data.get_all_files(limit=limit),
+        "artists": map(lambda x: x["artist"], use_artists),
+        "tags": jsondata["tags"],
+        "species": jsondata["species"],
+        "characters": jsondata["characters"],
+        "get_tag_details": data.get_tag_details,
+        "get_species_details": data.get_species_details
+    }
+
+    write_page("index", indexfile, **indexdata)
 
     return True
 
