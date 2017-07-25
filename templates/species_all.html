@@ -1,0 +1,9 @@
+{% extends "_layout.html" %}
+{% block title %}Kauko's art of all species{% endblock %}
+{% block content %}
+    {% for species, files in species.items() %}
+        <h2>{{get_species_details(species)}}</h2>
+
+        {{mh.thumbblock(files, thumbnails)}}
+    {% endfor %}
+{% endblock %}

@@ -1,10 +1,10 @@
 {% extends "_layout.html" %}
-{% block title %}Kauko's art from all artists{% endblock %}
+{% block title %}Kauko's art from all tags{% endblock %}
 {% block content %}
     {% for tag, files in tags.items() %}
         <h2>{{tag}}</h2>
         <p>{{get_tag_details(tag)}}</p>
 
-        {{mh.thumbblock(files, thumbnails, titleonly=True)}}
+        {{mh.thumbblock(files, thumbnails)}}
     {% endfor %}
 {% endblock %}

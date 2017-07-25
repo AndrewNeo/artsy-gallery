@@ -260,21 +260,23 @@ class Core(object):
     def get_tag_details(self, tag_name):
         return self.tag_key[tag_name] if tag_name in self.tag_key else tag_name
 
-    def get_all_species(self, limit=None):
-        def split_species(raw):
-            split = raw.split("#")
-            return split[1]
+    @staticmethod
+    def split_species(raw):
+        split = raw.split("#")
+        return split[1]
 
+    def get_all_species(self, limit=None):
         def get_species_from_file(f):
-            yield from map(split_species, f.characters)
-            yield from map(split_species, filter(lambda f: f.startswith("species#"), f.tags))
+            yield from map(Core.split_species, f.characters)
+            yield from map(Core.split_species, filter(lambda f: f.startswith("species#"), f.tags))
 
         return set(flatmap(get_species_from_file, self.get_all_files(limit=limit)))
 
     @autosort
     def get_files_by_species(self, species_name, sort=None, limit=None):
         all_files = list(self.get_all_files(limit=limit))
-        yield from filter(lambda f: species_name in f.species, all_files)
+
+        yield from filter(lambda f: any(map(lambda c: Core.split_species(c) == species_name, f.characters)), all_files)
         yield from filter(lambda f: "species#{}".format(species_name) in f.tags, all_files)
 
     def get_species_details(self, species_name):
@@ -316,3 +318,20 @@ class Core(object):
                 return None
 
         return None
+
+    def lookup_ref(self, path):
+        refdir, filename = path.split("/", 2)
+        return next(filter(lambda f: f.filename == filename, self.get_files_by_artist(refdir)), None)
+
+    def get_refsheets_from_character_species(self, species):
+        if not species.refsheet:
+            return None
+
+        return {version: self.lookup_ref(path) for version, path in species.refsheet}
+
+    def get_refsheet_from_character_species(self, species, version="sfw"):
+        sheets = self.get_refsheets_from_character_species(species)
+        if version not in sheets:
+            return None
+
+        return sheets[version]

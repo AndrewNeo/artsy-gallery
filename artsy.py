@@ -4,6 +4,7 @@
 import os
 import shutil
 import json
+from collections import OrderedDict
 from distutils.dir_util import copy_tree
 from resizeimage import resizeimage
 from PIL import Image
@@ -130,20 +131,40 @@ def generate_static_site(input_dir, output_dir, limit="*"):
     if not os.path.exists(tagsdir):
         os.makedirs(tagsdir)
 
-    collected_tags = {}
+    collected_tags = OrderedDict()
     for t in use_tags:
         files = data.get_files_by_tag(t, limit=limit)
         collected_tags[t] = files
 
         outfile = os.path.join(tagsdir, "{}.html".format(t.replace("#", "_")))
-        write_page("tag", outfile, tag=t, files=files, thumbnails=thumbnails)
+        write_page("tag", outfile, tag=t, description=data.get_tag_details(t), files=files, thumbnails=thumbnails)
 
     # Generate all-tags template
     tagfile = os.path.join(output_dir, "all_tags.html")
     write_page("tags", tagfile, tags=collected_tags, thumbnails=thumbnails, get_tag_details=data.get_tag_details)
 
+    # Generate species templates
+    use_species = list(sorted(data.get_all_species(limit=limit)))
+
+    specdir = os.path.join(output_dir, "_species")
+    if not os.path.exists(specdir):
+        os.makedirs(specdir)
+    
+    collected_species = OrderedDict()
+    for spec in use_species:
+        files = data.get_files_by_species(spec, limit=limit)
+        collected_species[spec] = files
+
+        outfile = os.path.join(specdir, "{}.html".format(spec))
+        write_page("species", outfile, species=spec, description=data.get_species_details(spec), files=files, thumbnails=thumbnails)
+    
+    # Generate all-species template
+    specfile = os.path.join(output_dir, "all_species.html")
+    write_page("species_all", specfile, species=collected_species, thumbnails=thumbnails, get_species_details=data.get_species_details)
+
     # Collect unique characters
     chars = set(map(lambda x: x.split("#")[0], data.get_all_characters(limit=limit)))
+    use_chars = list(sorted(map(data.get_character_details, chars)))
 
     # Generate JSON file
     jsonfile = os.path.join(output_dir, "data.json")
@@ -151,9 +172,10 @@ def generate_static_site(input_dir, output_dir, limit="*"):
         "data": use_artists,
         "tags": use_tags,
         "tag_descriptions": data.tag_key,
-        "species": list(sorted(data.get_all_species(limit=limit))),
+        "species": use_species,
         "species_descriptions": data.species_key,
-        "characters": list(sorted(map(data.get_character_details, chars)))
+        "characters": use_chars,
+        "thumbnails": thumbnails
     }
 
     write_json(jsonfile, jsondata)
@@ -163,7 +185,7 @@ def generate_static_site(input_dir, output_dir, limit="*"):
     indexdata = {
         "limit": limit,
         "thumbnails": thumbnails,
-        "files": data.get_all_files(limit=limit),
+        "files": data.get_all_files(limit=limit),  # Called manually here to sort the entire thing
         "artists": map(lambda x: x["artist"], use_artists),
         "tags": jsondata["tags"],
         "species": jsondata["species"],
