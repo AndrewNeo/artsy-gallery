@@ -4,7 +4,7 @@ import functools
 import itertools
 import attr
 import cattr
-from cattr.vendor.typing import List, Dict, Optional
+from typing import List, Dict, Optional
 
 
 clean_string_regex = re.compile("[^a-zA-Z0-9]")
