@@ -1,0 +1,22 @@
+{% extends "_layout.html" %}
+{% block title %}Art with {{data.character.name}}{% endblock %}
+{% block content %}
+    <h1>{{data.character.name}}</h1>
+    {% if data.character.description %}<p>{{data.character.description}}</p>{% endif %}
+
+    {% for species_name, species_root in data.species.items() %}
+        <h2>{{get_species_details(species_name)}}</h2>
+        {% if species_root.species.description %}<p>{{species_root.species.description}}</p>{% endif %}
+
+        {{mh.thumbblock(species_root.files, thumbnails, rootprefix="../")}}
+
+        {% if species_root.subforms %}
+        {% for subform_name, subform_root in species_root.subforms.items() %}
+            <h3>{{subform_name}}</h3>
+            {% if subform_root.subform.description %}<p>{{subform_root.subform.description}}</p>{% endif %}
+            
+            {{mh.thumbblock(subform_root.files, thumbnails, rootprefix="../")}}
+        {% endfor %}
+        {% endif %}
+    {% endfor %}
+{% endblock %}

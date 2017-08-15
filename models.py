@@ -285,19 +285,36 @@ class Core(object):
     def get_all_characters(self, limit=None):
         return set(flatmap(lambda f: f.characters, self.get_all_files(limit=limit)))
 
-    @autosort
-    def get_files_by_character(self, character_name, sort=None, limit=None):
-        return filter(lambda f: character_name in f.characters, self.get_all_files(limit=limit))  # TODO: Wrong
-
-    def get_character_details(self, character_name):
+    @staticmethod
+    def split_character_name(character_name):
         split = character_name.split("#")
         name = split[0]
-        species = None
-        subform = None
-        if len(split) > 1:
-            species = split[1]
-        if len(split) > 2:
-            subform = split[2]
+        species = split[1] if len(split) > 1 else None
+        subform = split[2] if len(split) > 2 else None
+
+        return (name, species, subform)
+
+    @autosort
+    def get_files_by_character(self, character_name, species=None, subform=None, ignore_subforms=False, sort=None, limit=None):
+        def charfilter(f):
+            for char in f.characters:
+                if character_name == char:
+                    return True
+
+                (iname, ispec, isub) = Core.split_character_name(char)
+                if character_name == iname:
+                    if isub and ignore_subforms:
+                        return False
+
+                    if (not species or species == ispec) and (not subform or subform == isub):
+                        return True
+
+            return False
+
+        return filter(charfilter, self.get_all_files(limit=limit))
+
+    def get_character_details(self, character_name):
+        (name, species, subform) = Core.split_character_name(character_name)
 
         for n, c in self.character_list.items():
             if n == name:
@@ -319,18 +336,31 @@ class Core(object):
 
         return None
 
+    def get_character_breakdown(self, character_name):
+        (name, species, subform) = Core.split_character_name(character_name)
+        character = self.get_character_details(character_name)
+
+        return {
+            "name": name,
+            "species_name": species,
+            "subform_name": subform,
+            "character": character,
+            "species_details": self.get_species_details(species)
+        }
+
     def lookup_ref(self, path):
         refdir, filename = path.split("/", 2)
         return next(filter(lambda f: f.filename == filename, self.get_files_by_artist(refdir)), None)
 
-    def get_refsheets_from_character_species(self, species):
+    @autovisfilter
+    def get_refsheets_from_character_species(self, species, limit=None):
         if not species.refsheet:
             return None
 
         return {version: self.lookup_ref(path) for version, path in species.refsheet}
 
-    def get_refsheet_from_character_species(self, species, version="sfw"):
-        sheets = self.get_refsheets_from_character_species(species)
+    def get_refsheet_from_character_species(self, species, version="sfw", limit=None):
+        sheets = self.get_refsheets_from_character_species(species, limit=limit)
         if version not in sheets:
             return None
 

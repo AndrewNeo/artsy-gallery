@@ -29,9 +29,9 @@
         </div>
         
         <div class="col-sm-6 col-lg-3">
-            <h2>Characters</h2>
+            <h2><a href="all_characters.html">Characters</a></h2>
             <ul>
-                {% for char in characters %}<li>{{char.name}}</li>{% endfor %}
+                {% for char_name in characters %}<li><a href="_characters/{{char_name}}.html">{{character_data[char_name].name}}</a></li>{% endfor %}
             </ul>
         </div>
     </div>

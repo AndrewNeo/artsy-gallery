@@ -1,0 +1,9 @@
+{% extends "_layout.html" %}
+{% block title %}Kauko's art from all characters{% endblock %}
+{% block content %}
+    {% for char_name, details in characters.items() %}
+        <h2><a href="_characters/{{char_name}}.html">{{details.character.name}}</a></h2>
+
+        {{mh.thumbblock(details.files, thumbnails)}}
+    {% endfor %}
+{% endblock %}

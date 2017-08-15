@@ -108,7 +108,7 @@ def generate_static_site(input_dir, output_dir, limit="*"):
             thumbnails[image.slug] = generate_thumbnails(artist_file._reldir, artistdir, image, [120, 512])
 
             # Write templated file
-            write_page("image", outfile, artist=artist, image=image, thumbnails=thumbnails[image.slug])
+            write_page("image", outfile, artist=artist, image=image, get_character_breakdown=data.get_character_breakdown, thumbnails=thumbnails[image.slug])
 
             artistout["files"].append(image)
 
@@ -163,8 +163,41 @@ def generate_static_site(input_dir, output_dir, limit="*"):
     write_page("species_all", specfile, species=collected_species, thumbnails=thumbnails, get_species_details=data.get_species_details)
 
     # Collect unique characters
-    chars = set(map(lambda x: x.split("#")[0], data.get_all_characters(limit=limit)))
-    use_chars = list(sorted(map(data.get_character_details, chars)))
+    # TODO: Sort this by the character metadata definition
+    chars = list(sorted(set(map(lambda x: x.split("#")[0], data.get_all_characters(limit=limit)))))
+    use_chars = {cn: data.get_character_details(cn) for cn in chars}
+
+    # Generate character templates
+    chardir = os.path.join(output_dir, "_characters")
+    if not os.path.exists(chardir):
+        os.makedirs(chardir)
+
+    collected_chars = OrderedDict()
+    for char_name, char in use_chars.items():
+        files = data.get_files_by_character(char_name, limit=limit)
+        thischar = {"character": char, "files": files, "species": {}}
+        thischarspec = thischar["species"]
+        collected_chars[char_name] = thischar
+
+        for sn, s in char.species.items():
+            sf = data.get_files_by_character(char_name, species=sn, ignore_subforms=True, limit=limit)
+
+            if len(sf) > 0 or s.subforms:
+                thischarspec[sn] = {"species": s, "files": sf, "subforms": {}}
+            
+            if s.subforms:
+                for sfn, sf in s.subforms.items():
+                    sff = data.get_files_by_character(char_name, species=sn, subform=sfn, limit=limit)
+
+                    if len(sff) > 0:
+                        thischarspec[sn]["subforms"][sfn] = {"subform": sf, "files": sff}
+            
+        outfile = os.path.join(chardir, "{}.html".format(char_name))
+        write_page("character", outfile, data=thischar, thumbnails=thumbnails, get_species_details=data.get_species_details)
+
+    # Generate all-characters template
+    charfile = os.path.join(output_dir, "all_characters.html")
+    write_page("characters", charfile, characters=collected_chars, thumbnails=thumbnails)
 
     # Generate JSON file
     jsonfile = os.path.join(output_dir, "data.json")
@@ -189,7 +222,8 @@ def generate_static_site(input_dir, output_dir, limit="*"):
         "artists": map(lambda x: x["artist"], use_artists),
         "tags": jsondata["tags"],
         "species": jsondata["species"],
-        "characters": jsondata["characters"],
+        "characters": list(sorted(chars)),
+        "character_data": jsondata["characters"],
         "get_tag_details": data.get_tag_details,
         "get_species_details": data.get_species_details
     }
