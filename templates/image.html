@@ -3,7 +3,7 @@
     {% if linkobj.fa %}<p><a href="https://www.furaffinity.net/view/{{ linkobj.fa }}/">FurAffinity</a></p>{% endif %}
     {% if linkobj.weasyl %}<p><a href="{{ linkobj.weasyl }}">Weasyl</a></p>{% endif %}
 {% endmacro %}
-{% block title %}{{title}} by {{artist.name}}{% endblock %}
+{% block title %}{{image.title}} by {{artist.name}}{% endblock %}
 {% block content %}
     <h1>{{image.title}} by {{artist.name}}</h1>
 

@@ -163,13 +163,13 @@ class CharacterSpeciesSubform(object):
 
     def set_character(self, character):
         self._character = character
-    
+
     def get_character(self):
         return self._character
 
     def set_parent(self, parent):
         self._parent = parent
-    
+
     def get_parent(self):
         return self._parent
 
