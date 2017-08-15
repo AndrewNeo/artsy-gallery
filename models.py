@@ -136,6 +136,12 @@ class ArtistImage(object):
             # Only lockouts
             return self.lockout == limit
 
+    def get_species_all(self):
+        yield from map(lambda c: Core.split_character_name(c)[1], self.characters)
+        yield from map(Core.split_species, filter(lambda t: t.startswith("species#"), self.tags))
+    
+    def get_species(self):
+        return set(self.get_species_all())
 
 @attr.s
 class ArtistFile(object):
@@ -257,8 +263,13 @@ class Core(object):
     def get_files_by_tag(self, tag_name, sort=None, limit=None):
         return filter(lambda f: tag_name in f.tags, self.get_all_files(limit=limit))
 
-    def get_tag_details(self, tag_name):
-        return self.tag_key[tag_name] if tag_name in self.tag_key else tag_name
+    def get_tag_details(self, tag_name, as_none=False):
+        if tag_name in self.tag_key:
+            return self.tag_key[tag_name]
+        elif as_none:
+            return None
+        else:
+            return tag_name
 
     @staticmethod
     def split_species(raw):
@@ -279,8 +290,13 @@ class Core(object):
         yield from filter(lambda f: any(map(lambda c: Core.split_species(c) == species_name, f.characters)), all_files)
         yield from filter(lambda f: "species#{}".format(species_name) in f.tags, all_files)
 
-    def get_species_details(self, species_name):
-        return self.species_key[species_name] if species_name in self.species_key else species_name
+    def get_species_details(self, species_name, as_none=False):
+        if species_name in self.species_key:
+            return self.species_key[species_name]
+        elif as_none:
+            return None
+        else:
+            return species_name
 
     def get_all_characters(self, limit=None):
         return set(flatmap(lambda f: f.characters, self.get_all_files(limit=limit)))
@@ -316,6 +332,9 @@ class Core(object):
     def get_character_details(self, character_name):
         (name, species, subform) = Core.split_character_name(character_name)
 
+        def notfound():
+            raise ValueError("Could not find character {}".format(character_name))
+
         for n, c in self.character_list.items():
             if n == name:
                 if not species:
@@ -330,11 +349,11 @@ class Core(object):
                             if sfn == subform:
                                 return sf
 
-                        return None
+                        return notfound()
 
-                return None
+                return notfound()
 
-        return None
+        return notfound()
 
     def get_character_breakdown(self, character_name):
         (name, species, subform) = Core.split_character_name(character_name)
@@ -344,8 +363,7 @@ class Core(object):
             "name": name,
             "species_name": species,
             "subform_name": subform,
-            "character": character,
-            "species_details": self.get_species_details(species)
+            "character": character
         }
 
     def lookup_ref(self, path):

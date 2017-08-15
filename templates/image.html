@@ -21,10 +21,10 @@
                 {% set char_data = get_character_breakdown(char_id) %}
                 {% set character = char_data.character.get_parent() %}
                 {% if not char_data.character.is_subform() %}
-                <li><a href="../_characters/{{char_data.name}}.html#{{char_data.species_name}}">{{character.name}}</a> ({{char_data.species_details}})</li>
+                <li><a href="../_characters/{{char_data.name}}.html#{{char_data.species_name}}">{{character.name}}</a> ({{get_species_details(char_data.species_name)}})</li>
                 {% else %}
                 {% set character = character.get_parent() %}
-                <li><a href="../_characters/{{char_data.name}}.html#{{char_data.species_name}}_{{char_data.subform_name}}">{{character.name}}</a> ({{char_data.subform_name}} {{char_data.species_details}})</li>
+                <li><a href="../_characters/{{char_data.name}}.html#{{char_data.species_name}}_{{char_data.subform_name}}">{{character.name}}</a> ({{char_data.subform_name}} {{get_species_details(char_data.species_name)}})</li>
                 {% endif %}
                 {% endfor %}
             </ul>
@@ -32,7 +32,17 @@
             <h4>Tags</h4>
             <ul>
                 {% for tag in image.tags %}
-                <li><a href="../_tags/{{tag}}.html">{{tag}}</a></li>
+                {% if not tag.startswith("species#") %}
+                {% set tagdet = get_tag_details(tag, as_none=True) %}
+                <li><a href="../_tags/{{tag|replace('#','_')}}.html"{% if tagdet %} title="{{tagdet}}"{% endif %}>{{tag}}</a></li>
+                {% endif %}
+                {% endfor %}
+            </ul>
+
+            <h4>Species</h4>
+            <ul>
+                {% for species in image.get_species() %}
+                <li><a href="../_species/{{species}}.html">{{get_species_details(species)}}</a></li>
                 {% endfor %}
             </ul>
 

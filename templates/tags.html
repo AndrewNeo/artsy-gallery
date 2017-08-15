@@ -3,7 +3,8 @@
 {% block content %}
     {% for tag, files in tags.items() %}
         <h2>{{tag}}</h2>
-        <p>{{get_tag_details(tag)}}</p>
+        {% set tagdet = get_tag_details(tag, as_none=True) %}
+        {% if tagdet %}<p>{{tagdet}}</p>{% endif %}
 
         {{mh.thumbblock(files, thumbnails)}}
     {% endfor %}

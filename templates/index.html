@@ -17,7 +17,12 @@
         <div class="col-sm-6 col-lg-3">
             <h2><a href="all_tags.html">Tags</a></h2>
             <ul>
-                {% for tag in tags %}<li title="{{get_tag_details(tag)}}"><a href="_tags/{{tag|replace('#','_')}}.html">{{tag}}</a></li>{% endfor %}
+                {% for tag in tags %}
+                {% if not tag.startswith("species#") %}
+                {% set tagdet = get_tag_details(tag, as_none=True) %}
+                <li><a href="_tags/{{tag|replace('#','_')}}.html"{% if tagdet %} title="{{tagdet}}"{% endif %}>{{tag}}</a></li>
+                {% endif %}
+                {% endfor %}
             </ul>
         </div>
 
