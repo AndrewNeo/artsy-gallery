@@ -15,7 +15,7 @@ def load_artist_file(filename):
 
 
 def get_artist_files(path):
-    return glob.glob(os.path.join(path, "**", ".art.yaml"))
+    return glob.iglob(os.path.join(path, "**", ".art.yaml"))
 
 
 def load_metadata_file(filename):

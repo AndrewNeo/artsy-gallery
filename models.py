@@ -139,7 +139,7 @@ class ArtistImage(object):
     def get_species_all(self):
         yield from map(lambda c: Core.split_character_name(c)[1], self.characters)
         yield from map(Core.split_species, filter(lambda t: t.startswith("species#"), self.tags))
-    
+
     def get_species(self):
         return set(self.get_species_all())
 
