@@ -269,5 +269,6 @@ def generate_static_site(input_dir, output_dir, limit="*", force=False):
 
 
 if __name__ == "__main__":
-    generate_static_site("testdata", "output", force=True)
+    args = utils.parse_args()
+    generate_static_site(args.indir, args.outdir, args.limit, force=args.force)
     print("Files written.")

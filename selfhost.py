@@ -4,20 +4,18 @@
 import os
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from artsy import generate_static_site
+import utils
 
 # Configure
-# TODO: Move this to command line arguments
-indir = "testdata"
-outdir = "output"
-limit = None
+args = utils.parse_args()
 
 # Generate
 print("Generating content...")
-generate_static_site(indir, outdir, limit)
+generate_static_site(args.indir, args.outdir, args.limit, force=args.force)
 
 # Host
 print("Hosting content on http://localhost:8000/")
-os.chdir(os.path.join(os.path.dirname(__file__), outdir))
+os.chdir(os.path.join(os.path.dirname(__file__), args.outdir))
 
 server_address = ('', 8000)
 httpd = HTTPServer(server_address, SimpleHTTPRequestHandler)

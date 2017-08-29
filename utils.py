@@ -1,6 +1,7 @@
 import os
 import glob
 import json
+import argparse
 import binascii
 import cattr
 
@@ -36,3 +37,14 @@ def write_json(outfile, data, clean=False):
 
     with open(outfile, "w") as f:
         json.dump(data, f)
+
+
+def parse_args():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("indir", help="Input directory", metavar="INPUT_DIR")
+    parser.add_argument("-o", "--outdir", help="Output directory", default="output", metavar="OUTPUT_DIR")
+    parser.add_argument("-l", "--limit", help="Set output limit", default=None)
+    parser.add_argument("-f", "--force", help="Force rewrite content", action="store_true")
+
+    args = parser.parse_args()
+    return args
