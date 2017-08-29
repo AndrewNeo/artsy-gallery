@@ -3,34 +3,16 @@
 
 import os
 import shutil
-import json
-import binascii
 import glob
 from collections import OrderedDict
 from resizeimage import resizeimage
 from PIL import Image
-import cattr
 from data import get_art_data
 from templater import Templater
+import utils
 
 
 templater = Templater("templates")
-
-
-def get_hash(infile):
-    if not os.path.exists(infile):
-        return None
-
-    return "%08X" % (binascii.crc32(open(infile, "rb").read()) & 0xFFFFFFFF)
-
-
-def remove_parent_path(parent, filepath):
-    return filepath[len(parent) + 1:]
-
-
-def get_dir_hashes(indir):
-    files = glob.iglob("{}/**".format(indir), recursive=True)
-    return {remove_parent_path(indir, f): get_hash(f) for f in files if os.path.isfile(f)}
 
 
 def generate_thumbnail_size(img, width, filename):
@@ -47,7 +29,7 @@ def generate_thumbnails(indir, outdir, image, widths, do_update, add_touched, fo
 
     # Copy full image file
     fullpath = get_path("full")
-    fullhash = get_hash(relpath)
+    fullhash = utils.get_hash(relpath)
     should_do_update = do_update(fullpath, fullhash)
     if should_do_update:
         shutil.copy2(relpath, fullpath)
@@ -74,23 +56,6 @@ def write_page(template, outfile, **kwargs):
         f.write(td)
 
 
-# https://stackoverflow.com/a/27974027/151495
-def clean_empty(d):
-    if not isinstance(d, (dict, list)):
-        return d
-    if isinstance(d, list):
-        return [v for v in (clean_empty(v) for v in d) if v]
-    return {k: v for k, v in ((k, clean_empty(v)) for k, v in d.items()) if v}
-
-
-def write_json(outfile, data, clean=False):
-    if clean:
-        data = clean_empty(cattr.unstructure(data))
-
-    with open(outfile, "w") as f:
-        json.dump(data, f)
-
-
 def cleanup_dead_files(output_dir, tree_hash, touched_files):
     dead_files = set(tree_hash.keys()) - set(touched_files)
 
@@ -108,7 +73,7 @@ def generate_static_site(input_dir, output_dir, limit="*", force=False):
     touched_files = []
 
     def add_touched(filename):
-        touched_files.append(remove_parent_path(output_dir, filename))
+        touched_files.append(utils.remove_parent_path(output_dir, filename))
 
     def do_update(fullpath, fullhash):
         return force or not os.path.exists(fullpath) or fullpath not in tree_hash or fullhash != tree_hash[fullpath]
@@ -121,7 +86,7 @@ def generate_static_site(input_dir, output_dir, limit="*", force=False):
             shutil.rmtree(output_dir, ignore_errors=True)
 
         # Get all current hashes
-        tree_hash = get_dir_hashes(output_dir)
+        tree_hash = utils.get_dir_hashes(output_dir)
     else:
         # Create output dir
         os.makedirs(output_dir)
@@ -129,8 +94,8 @@ def generate_static_site(input_dir, output_dir, limit="*", force=False):
     # Copy static files
     static_files = glob.iglob("static/**", recursive=True)
     for filepath in [item for item in static_files if os.path.isfile(item)]:
-        filehash = get_hash(filepath)
-        newpath = remove_parent_path("static", filepath)
+        filehash = utils.get_hash(filepath)
+        newpath = utils.remove_parent_path("static", filepath)
         outfile = os.path.join(output_dir, newpath)
         if do_update(outfile, filehash):
             shutil.copy2(filepath, outfile)
@@ -279,7 +244,7 @@ def generate_static_site(input_dir, output_dir, limit="*", force=False):
         "thumbnails": thumbnails
     }
 
-    write_json(jsonfile, jsondata, True)
+    utils.write_json(jsonfile, jsondata, True)
     add_touched(jsonfile)
 
     # Generate index file
