@@ -41,10 +41,24 @@ def write_json(outfile, data, clean=False):
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("indir", help="Input directory", metavar="INPUT_DIR")
+    parser.add_argument("-i", "--indir", help="Input directory", default=None, metavar="INPUT_DIR")
     parser.add_argument("-o", "--outdir", help="Output directory", default="output", metavar="OUTPUT_DIR")
     parser.add_argument("-l", "--limit", help="Set output limit", default=None)
     parser.add_argument("-f", "--force", help="Force rewrite content", action="store_true")
+    parser.add_argument("-c", "--config", help="Configuration file", default=None, metavar="FILENAME")
 
     args = parser.parse_args()
+
+    if args.config:
+        with open(args.config, "r") as f:
+            config = json.loads(f.read())
+            if "indir" in config:
+                args.indir = config["indir"]
+            if "outdir" in config:
+                args.outdir = config["outdir"]
+            if "limit" in config:
+                args.limit = config["limit"]
+            if "force" in config:
+                args.force = config["force"]
+
     return args

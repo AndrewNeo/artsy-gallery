@@ -15,7 +15,10 @@ def load_artist_file(filename):
 
 
 def get_artist_files(path):
-    return glob.iglob(os.path.join(path, "**", ".art.yaml"))
+    files = glob.glob(os.path.join(path, "**", ".art.yaml"))
+    if len(files) == 0:
+        raise FileNotFoundError("No content files found.")
+    return files
 
 
 def load_metadata_file(filename):
@@ -33,7 +36,11 @@ def get_art_data(path, limit):
     artist_files = map(load_artist_file, get_artist_files(path))
 
     # Character list
-    metadata = load_metadata_file(os.path.join(path, ".metadata.yaml"))
+    metapath = os.path.join(path, ".metadata.yaml")
+    if not os.path.exists(metapath):
+        raise FileNotFoundError("No metadata file found.")
+
+    metadata = load_metadata_file(metapath)
 
     species_key = metadata.species
     character_list = metadata.characters

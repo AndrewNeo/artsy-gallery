@@ -2,6 +2,7 @@
 ENV/
 output/
 testdata/
+config.json
 
 # VS Code
 .vscode/*
