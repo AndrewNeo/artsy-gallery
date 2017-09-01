@@ -12,7 +12,7 @@
     <div class="row">
         <div class="col-sm-12 col-md-7 col-lg-6">
             <p><a href="{{thumbnails.full}}"><img src="{{thumbnails.512}}" /></a></p>
-            {% if image.description %}<p>{{image.description}}</p>{% endif %}
+            {% if image.description %}<p>{{image.description|markdown}}</p>{% endif %}
         </div>
         <div class="col-sm-12 col-md-5 col-lg-6">
             <h4>Characters</h4>

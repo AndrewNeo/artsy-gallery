@@ -3,6 +3,7 @@ ENV/
 output/
 testdata/
 config.json
+test_run.*
 
 # VS Code
 .vscode/*
