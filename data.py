@@ -15,7 +15,7 @@ def load_artist_file(filename):
 
 
 def get_artist_files(path):
-    files = glob.glob(os.path.join(path, "**", ".art.yaml"))
+    files = glob.glob(os.path.join(path, "**", ".art*.yaml"), recursive=True)
     if len(files) == 0:
         raise FileNotFoundError("No content files found.")
     return files
