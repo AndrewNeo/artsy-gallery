@@ -5,13 +5,31 @@ import cattr
 from models import Core, ArtistFile, MetadataFile
 
 
+class ConfigFileError(Exception):
+    def __init__(self, filename=None):
+        Exception.__init__(self, filename)
+
+    def __suppress_context__(self):
+        return False
+
+    @property
+    def filename(self):
+        if self.args:
+            filename = self.args[0]
+            if filename is not None:
+                return filename
+
+
 def load_artist_file(filename):
     '''Load an artist file.'''
-    with open(filename, "r") as f:
-        obj = yaml.load(f.read())
-        obj = cattr.structure(obj, ArtistFile)
-        obj.prepare(filename)
-        return obj
+    try:
+        with open(filename, "r") as f:
+            obj = yaml.load(f.read())
+            obj = cattr.structure(obj, ArtistFile)
+            obj.prepare(filename)
+            return obj
+    except Exception as e:
+        raise ConfigFileError("Error processing file: {}".format(filename)) from e
 
 
 def get_artist_files(path):
