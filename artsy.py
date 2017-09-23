@@ -8,6 +8,7 @@ from collections import OrderedDict
 from resizeimage import resizeimage
 from PIL import Image
 from data import get_art_data
+import datacheck
 from templater import Templater
 import utils
 
@@ -69,6 +70,13 @@ def generate_static_site(input_dir, output_dir, limit="*", force=False):
     '''Output templates to filesystem.'''
     # Get data and fail on error
     data = get_art_data(input_dir, limit)
+
+    # Check for errors
+    checkres = datacheck.check(data)
+    datacheck.printout(checkres, "error", "ERROR")
+    datacheck.printout(checkres, "warn", "WARN")
+    if len(checkres["error"]) > 0:
+        raise RuntimeError("Unable to continue until errors are resolved.")
 
     touched_files = []
 
