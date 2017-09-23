@@ -278,8 +278,7 @@ class Core(object):
             if isinstance(ignore, str):
                 ignore = [ignore]
 
-            for ign in ignore:
-                tags = itertools.filterfalse(lambda x: x.startswith("{}#".format(ign)), tags)
+            tags = itertools.filterfalse(lambda tag: any(map(lambda x: tag.startswith("{}#".format(x)), ignore)), tags)
 
         return set(tags)
 
