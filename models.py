@@ -85,6 +85,12 @@ class ImageLinks(object):
 
 
 @attr.s
+class ImageSequence(object):
+    first = cattr.typed(Optional[str], default=None)
+    next = cattr.typed(Optional[str], default=None)
+
+
+@attr.s
 class Artist(object):
     name = cattr.typed(str)
     links = cattr.typed(Optional[UserLinks], default=None)
@@ -109,6 +115,7 @@ class ArtistImage(object):
     tags = cattr.typed(List[str])
     characters = attr.ib(convert=make_list)  # Using cattr.typed converts str to a list before convert is called
     lockout = cattr.typed(Optional[str], default=None)
+    sequence = cattr.typed(Optional[ImageSequence], default=None)
     my_links = cattr.typed(Optional[ImageLinks], default=None)
     artist_links = cattr.typed(Optional[ImageLinks], default=None)
 
@@ -142,6 +149,7 @@ class ArtistImage(object):
 
     def get_species(self):
         return set(self.get_species_all())
+
 
 @attr.s
 class ArtistFile(object):
@@ -234,13 +242,19 @@ class Core(object):
     def get_all_artists(self):
         return self.artist_files
 
-    def get_artist_by_name(self, artist_name):
-        return next(filter(lambda a: a.artist.name == artist_name, self.artist_files), None)
+    def get_artist_by_name(self, artist_name, use_slug=False):
+        def artist_filter(a):
+            if use_slug:
+                return a.artist.get_slug() == artist_name
+            else:
+                return a.artist.name == artist_name
+
+        return next(filter(artist_filter, self.artist_files), None)
 
     @autosort
     @autovisfilter
-    def get_files_by_artist(self, artist_name, sort=None, limit=None):
-        artist = self.get_artist_by_name(artist_name)
+    def get_files_by_artist(self, artist_name, use_slug=False, sort=None, limit=None):
+        artist = self.get_artist_by_name(artist_name, use_slug)
         if not artist:
             return []
 
@@ -250,6 +264,9 @@ class Core(object):
     @autovisfilter
     def get_all_files(self, sort=None, limit=None):
         return flatmap(lambda a: a.files, self.artist_files)
+
+    def get_file_by_slug(self, artist, slug):
+        return next(filter(lambda f: f.slug == slug, self.get_files_by_artist(artist, use_slug=True)), None)
 
     def get_all_tags(self, limit=None, ignore=None):
         tags = flatmap(lambda f: f.tags, self.get_all_files(limit=limit))
@@ -383,3 +400,60 @@ class Core(object):
             return None
 
         return sheets[version]
+
+    def process_sequence(self, file):
+        def get_file_from_seqdef(str):
+            (artist, slug) = str.split(":")
+            return self.get_file_by_slug(artist, slug)
+
+        # Get first file
+        if not file.sequence:
+            return []
+
+        if file.sequence.next and not file.sequence.first:
+            # This is the first file
+            curfile = file
+        elif file.sequence.first:
+            curfile = get_file_from_seqdef(file.sequence.first)
+            if not curfile:
+                raise RuntimeError("File {} in sequence was unable to find slug {}".format(file.filename, file.sequence.first))
+        else:
+            # Empty sequence
+            return []
+
+        sequence = [curfile]
+
+        # Chain next's
+        while curfile and curfile.sequence and curfile.sequence.next:
+            curfile = get_file_from_seqdef(curfile.sequence.next)
+            if curfile:
+                if curfile in sequence:
+                    raise RecursionError("File {} was already in sequence".format(file.filename))
+
+                sequence.append(curfile)
+            else:
+                raise RuntimeError("File {} in sequence was unable to find slug {}".format(file.filename, file.sequence.next))
+
+        if file not in sequence:
+            raise RuntimeError("Current file {} is not in sequence".format(file.filename))
+
+        if len(sequence) < 2:
+            raise RuntimeError("Current file {} is the only member in the sequence".format(file.filename))
+
+        return sequence
+
+    def get_sequence(self, file):
+        seqlist = self.process_sequence(file)
+        if len(seqlist) < 2:
+            return None
+
+        p = seqlist.index(file)
+
+        return {
+            "list": seqlist,
+            "curpos": p,
+            "first": seqlist[0],
+            "last": seqlist[-1],
+            "prev": seqlist[p - 1] if p > 0 else None,
+            "next": seqlist[p + 1] if p < len(seqlist) - 1 else None
+        }

@@ -46,6 +46,20 @@
                 {% endfor %}
             </ul>
 
+            {% if sequence %}
+                {% macro format_link(image, seq, title, extra_test=True) %}
+                    {% if seq and seq != image and extra_test %}<li><a href="../{{seq.get_artist().get_slug()}}/{{seq.slug}}.html">{{title}}</a></li>{% endif %}
+                {% endmacro %}
+                <h4>Sequence</h4>
+                <ul>
+                    {# Condense first+previous when they're the same image #}
+                    {{format_link(image, sequence.first, "First", sequence.prev != sequence.first)}}
+                    {{format_link(image, sequence.prev, "Previous")}}
+                    {{format_link(image, sequence.next, "Next")}}
+                    {{format_link(image, sequence.last, "Last", sequence.next != sequence.last)}}
+                </ul>
+            {% endif %}
+
             {% if image.artist_links %}
                 <h4>Artist's links</h4>
                 {{ linkbox(image.artist_links) }}

@@ -132,7 +132,7 @@ def generate_static_site(input_dir, output_dir, limit="*", force=False):
             thumbnails[image.slug] = generate_thumbnails(artist_file._reldir, artistdir, image, [120, 512], do_update, add_touched)
 
             # Write templated file
-            write_page("image", outfile, artist=artist, image=image, get_character_breakdown=data.get_character_breakdown, get_species_details=data.get_species_details, get_tag_details=data.get_tag_details, thumbnails=thumbnails[image.slug])
+            write_page("image", outfile, artist=artist, image=image, get_character_breakdown=data.get_character_breakdown, get_species_details=data.get_species_details, get_tag_details=data.get_tag_details, sequence=data.get_sequence(image), thumbnails=thumbnails[image.slug])
             add_touched(outfile)
 
             artistout["files"].append(image)
