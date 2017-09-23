@@ -32,7 +32,7 @@
             <h4>Tags</h4>
             <ul>
                 {% for tag in image.tags %}
-                {% if not tag.startswith("species#") %}
+                {% if not tag.startswith("species#") and not tag.startswith("group#") %}
                 {% set tagdet = get_tag_details(tag, as_none=True) %}
                 <li><a href="../_tags/{{tag|replace('#','_')}}.html"{% if tagdet %} title="{{tagdet}}"{% endif %}>{{tag}}</a></li>
                 {% endif %}
@@ -57,6 +57,17 @@
                     {{format_link(image, sequence.prev, "Previous")}}
                     {{format_link(image, sequence.next, "Next")}}
                     {{format_link(image, sequence.last, "Last", sequence.next != sequence.last)}}
+                </ul>
+            {% endif %}
+
+            {% set groups = image.get_groups() %}
+            {% if groups %}
+                <h4>Groups</h4>
+                <ul>
+                    {% for group in groups %}
+                    {% set tagdet = get_tag_details("group#{}".format(group), as_none=True) %}
+                    <li><a href="../_groups/{{group|replace('#','_')}}.html">{% if tagdet %}{{tagdet}}{% else %}{{group}}{% endif %}</a></li>
+                    {% endfor %}
                 </ul>
             {% endif %}
 

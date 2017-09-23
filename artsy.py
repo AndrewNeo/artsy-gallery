@@ -152,7 +152,7 @@ def generate_static_site(input_dir, output_dir, limit="*", force=False):
     add_touched(artistsfile)
 
     # Generate tag templates
-    use_tags = list(sorted(data.get_all_tags(limit=limit, ignore="species")))
+    use_tags = list(sorted(data.get_all_tags(limit=limit, ignore=["species", "group"])))
 
     tagsdir = os.path.join(output_dir, "_tags")
     if not os.path.exists(tagsdir):
@@ -192,6 +192,23 @@ def generate_static_site(input_dir, output_dir, limit="*", force=False):
     specfile = os.path.join(output_dir, "all_species.html")
     write_page("species_all", specfile, species=collected_species, thumbnails=thumbnails, get_species_details=data.get_species_details)
     add_touched(specfile)
+
+    # Generate group templates
+    use_groups = list(sorted(map(lambda t: t.replace("group#", ""), filter(lambda f: f.startswith("group#"), data.get_all_tags(limit=limit)))))
+
+    groupdir = os.path.join(output_dir, "_groups")
+    if not os.path.exists(groupdir):
+        os.makedirs(groupdir)
+    
+    collected_groups = {}
+    for group in use_groups:
+        tagname = "group#{}".format(group)
+        files = data.get_files_by_tag(tagname)
+        collected_groups[group] = files
+
+        outfile = os.path.join(groupdir, "{}.html".format(group))
+        write_page("group", outfile, group=group, description=data.get_tag_details(tagname, True), files=files, thumbnails=thumbnails)
+        add_touched(outfile)
 
     # Collect unique characters
     # TODO: Sort this by the character metadata definition
@@ -238,6 +255,7 @@ def generate_static_site(input_dir, output_dir, limit="*", force=False):
         "data": use_artists,
         "tags": use_tags,
         "tag_descriptions": data.tag_key,
+        "groups": use_groups,
         "species": use_species,
         "species_descriptions": data.species_key,
         "characters": use_chars,
@@ -255,6 +273,7 @@ def generate_static_site(input_dir, output_dir, limit="*", force=False):
         "files": data.get_all_files(limit=limit),  # Called manually here to sort the entire thing
         "artists": map(lambda x: x["artist"], use_artists),
         "tags": use_tags,
+        "groups": use_groups,
         "species": use_species,
         "characters": list(sorted(chars)),
         "character_data": use_chars,

@@ -1,0 +1,8 @@
+{% extends "_layout.html" %}
+{% block title %}Kauko's art in {{group}}{% endblock %}
+{% block content %}
+    <h1>{% if description %}{{description}}{% else %}{{group}}{% endif %}</h1>
+
+    <h2>Art</h2>
+    {{mh.thumbblock(files, thumbnails, rootprefix="../")}}
+{% endblock %}

@@ -150,6 +150,9 @@ class ArtistImage(object):
     def get_species(self):
         return set(self.get_species_all())
 
+    def get_groups(self):
+        return set(map(lambda t: t.replace("group#", ""), filter(lambda t: t.startswith("group#"), self.tags)))
+
 
 @attr.s
 class ArtistFile(object):
@@ -272,7 +275,11 @@ class Core(object):
         tags = flatmap(lambda f: f.tags, self.get_all_files(limit=limit))
 
         if ignore:
-            tags = itertools.filterfalse(lambda x: x.startswith("{}#".format(ignore)), tags)
+            if isinstance(ignore, str):
+                ignore = [ignore]
+
+            for ign in ignore:
+                tags = itertools.filterfalse(lambda x: x.startswith("{}#".format(ign)), tags)
 
         return set(tags)
 
