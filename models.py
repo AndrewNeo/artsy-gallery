@@ -47,17 +47,16 @@ def autosort(f):
     return wrapper
 
 
-def vis_filter(files, limit):
-    return filter(lambda x: x.is_visible(limit), files)
-
-
 def autovisfilter(f):
     @functools.wraps(f)
     def wrapper(*args, **kwargs):
         output = f(*args, **kwargs)
         if "limit" in kwargs:
             lval = kwargs["limit"]
-            return vis_filter(output, lval)
+            if lval:
+                return filter(lval.is_visible, output)
+            else:
+                return output
         else:
             return output
     return wrapper
@@ -114,6 +113,7 @@ class ArtistImage(object):
     description = cattr.typed(Optional[str])
     tags = cattr.typed(List[str])
     characters = attr.ib(convert=make_list)  # Using cattr.typed converts str to a list before convert is called
+    visibility = cattr.typed(Optional[str], default=None)
     lockout = cattr.typed(Optional[str], default=None)
     sequence = cattr.typed(Optional[ImageSequence], default=None)
     my_links = cattr.typed(Optional[ImageLinks], default=None)
@@ -133,15 +133,7 @@ class ArtistImage(object):
         return "{slug}_{size}.{ext}".format(size=size, slug=self.slug, ext=self.get_file_ext())
 
     def is_visible(self, limit=None):
-        if limit == "*":
-            # Everything
-            return True
-        elif limit is None:
-            # Everything not locked out
-            return self.lockout is None
-        else:
-            # Only lockouts
-            return self.lockout == limit
+        return limit.is_visible(self)
 
     def get_species_all(self):
         yield from map(lambda c: Core.split_character_name(c)[1], self.characters)

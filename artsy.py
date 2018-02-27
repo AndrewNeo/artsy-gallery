@@ -65,8 +65,7 @@ def cleanup_dead_files(output_dir, tree_hash, touched_files):
         os.remove(os.path.join(output_dir, df))
 
 
-# TODO: Don't update files that don't need updating
-def generate_static_site(input_dir, output_dir, limit="*", force=False):
+def generate_static_site(input_dir, output_dir, limit=None, force=False):
     '''Output templates to filesystem.'''
     # Get data and fail on error
     data = get_art_data(input_dir, limit)
@@ -297,5 +296,6 @@ def generate_static_site(input_dir, output_dir, limit="*", force=False):
 
 if __name__ == "__main__":
     args = utils.parse_args()
-    generate_static_site(args.indir, args.outdir, args.limit, force=args.force)
+    limit = utils.get_limit_from_args(args)
+    generate_static_site(args.indir, args.outdir, limit=limit, force=args.force)
     print("Files written.")

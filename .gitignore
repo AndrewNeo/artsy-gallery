@@ -1,5 +1,4 @@
 # Project ignores
-ENV/
 output/
 testdata/
 config.json

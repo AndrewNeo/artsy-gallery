@@ -5,5 +5,8 @@
         ".git"
     ],
     "ext": "py yaml html css",
-    "delay": 3
+    "delay": 3,
+    "execMap": {
+        "py": "pipenv run python"
+    }
 }

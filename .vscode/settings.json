@@ -1,17 +1,15 @@
 // Place your settings in this file to overwrite default and user settings.
 {
-    "python.venvPath": "ENV",
     "python.linting.pylintEnabled": false,
     "python.linting.flake8Enabled": true,
     "cSpell.ignorePaths": [
-        "**/ENV/**",
         ".git",
         ".vscode"
     ],
     "files.exclude": {
         "**/.git": true,
         "**/.DS_Store": true,
-        "**/ENV": true,
         "**/__pycache__": true
-    }
+    },
+    "python.pythonPath": "~\\.virtualenvs\\artsy-vJocsQ8Z\\Scripts\\python"
 }
