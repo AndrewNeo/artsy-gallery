@@ -206,7 +206,7 @@ def generate_static_site(input_dir, output_dir, limit=None, force=False):
     groupdir = os.path.join(output_dir, "_groups")
     if not os.path.exists(groupdir):
         os.makedirs(groupdir)
-    
+
     collected_groups = {}
     for group in use_groups:
         tagname = "group#{}".format(group)

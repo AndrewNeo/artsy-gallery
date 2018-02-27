@@ -266,17 +266,34 @@ class Core(object):
     def get_all_tags(self, limit=None, ignore=None):
         tags = flatmap(lambda f: f.tags, self.get_all_files(limit=limit))
 
+        # Ignore certain tag parents
         if ignore:
             if isinstance(ignore, str):
                 ignore = [ignore]
 
             tags = itertools.filterfalse(lambda tag: any(map(lambda x: tag.startswith("{}#".format(x)), ignore)), tags)
 
-        return set(tags)
+        tags = set(tags)
+
+        # Add parent tags of subtags
+        parent_tags = map(lambda t: t.split("#")[0], filter(lambda t: "#" in t, tags))
+        tags = tags.union(parent_tags)
+
+        return tags
 
     @autosort
     def get_files_by_tag(self, tag_name, sort=None, limit=None):
-        return filter(lambda f: tag_name in f.tags, self.get_all_files(limit=limit))
+        def filterfunc(f):
+            if tag_name in f.tags:
+                return True
+
+            parent_tags = set(map(lambda t: t.split("#")[0], filter(lambda t: "#" in t, f.tags)))
+            if tag_name in parent_tags:
+                return True
+
+            return False
+
+        return filter(filterfunc, self.get_all_files(limit=limit))
 
     def get_tag_details(self, tag_name, as_none=False):
         if tag_name in self.tag_key:
