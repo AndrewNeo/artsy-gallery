@@ -5,6 +5,7 @@ import itertools
 import attr
 import cattr
 from typing import List, Dict, Optional
+from utils import LimitFilter
 
 
 clean_string_regex = re.compile("[^a-zA-Z0-9]")
@@ -472,3 +473,14 @@ class Core(object):
             "prev": seqlist[p - 1] if p > 0 else None,
             "next": seqlist[p + 1] if p < len(seqlist) - 1 else None
         }
+
+    def get_all_limits(self, base_limit, locked_vis=None):
+        # Get all permutations of visibilities and lockouts and return Limits for them
+        # TODO: Non-root should actually include other content if settings say so
+        # Also we need some way to allow a lockout to include all visibilities [explicit config?]
+        def unique_limit(f):
+            return LimitFilter(visibility=f.visibility, visibilityOnly=locked_vis, lockout=f.lockout, lockoutOnly=locked_vis)
+
+        files = self.get_all_files(limit=base_limit)
+        limits = set(map(unique_limit, files))
+        return limits

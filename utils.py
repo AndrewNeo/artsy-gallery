@@ -78,7 +78,7 @@ def parse_args():
     return args
 
 
-@attr.s
+@attr.s(cmp=True, frozen=True)
 class LimitFilter(object):
     visibility = cattr.typed(Optional[str], default=None)
     visibilityOnly = cattr.typed(Optional[bool], default=False)

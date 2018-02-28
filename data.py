@@ -48,7 +48,7 @@ def load_metadata_file(filename):
         return obj
 
 
-def get_art_data(path, limit):
+def get_art_data(path):
     '''Get some art data.'''
     # Artist directory files
     artist_files = map(load_artist_file, get_artist_files(path))

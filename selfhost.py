@@ -12,7 +12,7 @@ args = utils.parse_args()
 # Generate
 print("Generating content...")
 limit = utils.get_limit_from_args(args)
-generate_static_site(args.indir, args.outdir, limit=limit, force=args.force)
+generate_static_site(args.indir, args.outdir, base_limit=limit, force=args.force)
 
 # Host
 print("Hosting content on http://localhost:8000/")
