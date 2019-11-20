@@ -2,15 +2,10 @@
 {
     "python.linting.pylintEnabled": false,
     "python.linting.flake8Enabled": true,
-    "cSpell.ignorePaths": [
-        ".git",
-        ".vscode"
-    ],
     "files.exclude": {
         "**/.git": true,
         "**/.DS_Store": true,
         "**/__pycache__": true
     },
-    "python.pythonPath": "~\\.virtualenvs\\artsy-2ZkE8avc\\Scripts\\python.exe",
     "python.formatting.provider": "black"
 }
