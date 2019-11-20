@@ -1,13 +1,13 @@
-{% macro thumbnail(file, thumbnails, rootprefix="", inartistdir=False, titleonly=False) %}
+{% macro thumbnail(submission, thumbnails, limit, rootprefix="", inartistdir=False, titleonly=False) %}
 <div class="col-sm-2 minithumb">
-    <img class="minithumb" src="{{rootprefix}}{% if not inartistdir %}{{file.get_artist().get_slug()}}/{% endif %}{{thumbnails[file.slug].120}}" /><br />
-    <a href="{{rootprefix}}{% if not inartistdir %}{{file.get_artist().get_slug()}}/{% endif %}{{file.slug}}.html">{{file.title}}{% if not titleonly %} by {{file.get_artist().name}}{% endif %}</a>
+    <img class="minithumb" src="{{rootprefix}}{% if not inartistdir %}{{submission.artist.slug()}}/{% endif %}{{thumbnails[submission.slug].120}}" /><br />
+    <a href="{{rootprefix}}{{ submission.get_path(inartistdir, limit) }}">{{submission.title}}{% if not titleonly %} by {{submission.artist.name}}{% endif %}</a>
 </div>
 {%- endmacro %}
-{% macro thumbblock(files, thumbnails) %}
+{% macro thumbblock(submissions, thumbnails, limit) %}
 <div class="row">
-    {% for file in files %}
-        {{thumbnail(file, thumbnails, **kwargs)}}
+    {% for submission in submissions %}
+        {{thumbnail(submission, thumbnails, limit, **kwargs)}}
     {% endfor %}
 </div>
 {%- endmacro %}

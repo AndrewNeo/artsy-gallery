@@ -3,40 +3,43 @@
 {% block content %}
     <h1>Kauko's Gallery</h1>
 
-    <h2>Files</h2>
-    {{mh.thumbblock(files, thumbnails)}}
+    <h2>Submissions</h2>
+    {{mh.thumbblock(submissions, thumbnails, limit)}}
 
     <div class="row">
         <div class="col-sm-6 col-lg-3">
-            <h2><a href="all_artists.html">Artists</a></h2>
+            <h2><a href="{{pathing.all_artists}}">Artists</a></h2>
             <ul>
-                {% for artist in artists %}<li><a href="{{artist.get_slug()}}/">{{artist.name}}</a></li>{% endfor %}
-            </ul>
-        </div>
-
-        <div class="col-sm-6 col-lg-3">
-            <h2><a href="all_tags.html">Tags</a></h2>
-            <ul>
-                {% for tag in tags %}
-                {% if not tag.startswith("species#") %}
-                {% set tagdet = get_tag_details(tag, as_none=True) %}
-                <li><a href="_tags/{{tag|replace('#','_')}}.html"{% if tagdet %} title="{{tagdet}}"{% endif %}>{{tag}}</a></li>
-                {% endif %}
+                {% for artist in artists %}
+                <li><a href="{{artist.get_path(limit)}}">{{artist.name}}</a></li>
                 {% endfor %}
             </ul>
         </div>
 
         <div class="col-sm-6 col-lg-3">
-            <h2><a href="all_species.html">Species</a></h2>
+            <h2><a href="{{pathing.all_tags}}">Tags</a></h2>
             <ul>
-                {% for spec in species %}<li><a href="_species/{{spec}}.html">{{get_species_details(spec)}}</a></li>{% endfor %}
+                {% for tag in tags %}
+                <li><a href="{{tag.get_path(limit=limit)}}" {% if tag.description %} title="{{tag.description}}"{% endif %}>{{tag.get_friendly_name()}}</a></li>
+                {% endfor %}
+            </ul>
+        </div>
+
+        <div class="col-sm-6 col-lg-3">
+            <h2><a href="{{pathing.all_species}}">Species</a></h2>
+            <ul>
+                {% for spec in species %}
+                <li><a href="{{spec.get_path(limit)}}">{{spec.get_friendly_name()}}</a></li>
+                {% endfor %}
             </ul>
         </div>
         
         <div class="col-sm-6 col-lg-3">
-            <h2><a href="all_characters.html">Characters</a></h2>
+            <h2><a href="{{pathing.all_characters}}">Characters</a></h2>
             <ul>
-                {% for char_name in characters %}<li><a href="_characters/{{char_name}}.html">{{character_data[char_name].name}}</a></li>{% endfor %}
+                {% for char in characters %}
+                <li><a href="{{char.get_path(limit)}}">{{char.name}}</a></li>
+                {% endfor %}
             </ul>
         </div>
     </div>

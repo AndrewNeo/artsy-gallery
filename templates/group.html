@@ -1,8 +1,9 @@
 {% extends "_layout.html" %}
-{% block title %}Kauko's art in {{group}}{% endblock %}
+{% block title %}Kauko's art in {{group.group_name}}{% endblock %}
 {% block content %}
-    <h1>{% if description %}{{description}}{% else %}{{group}}{% endif %}</h1>
+    <h1>{{group.get_friendly_name()}}</h1>
+    {% if group.description %}<p>{{group.description}}</p>{% endif %}
 
     <h2>Art</h2>
-    {{mh.thumbblock(files, thumbnails, rootprefix="../")}}
+    {{mh.thumbblock(group.submissions_filtered(limit), thumbnails, limit, rootprefix="../")}}
 {% endblock %}

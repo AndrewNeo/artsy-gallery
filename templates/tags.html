@@ -1,11 +1,10 @@
 {% extends "_layout.html" %}
 {% block title %}Kauko's art from all tags{% endblock %}
 {% block content %}
-    {% for tag, files in tags.items() %}
-        <h2>{{tag}}</h2>
-        {% set tagdet = get_tag_details(tag, as_none=True) %}
-        {% if tagdet %}<p>{{tagdet}}</p>{% endif %}
+    {% for tag in tags %}
+        <h2><a href="{{tag.get_path(limit)}}">{{tag.get_friendly_name()}}</a></h2>
+        {% if tag.description %}<p>{{tag.description}}</p>{% endif %}
 
-        {{mh.thumbblock(files, thumbnails)}}
+        {{mh.thumbblock(tag.submissions_filtered(limit), thumbnails, limit)}}
     {% endfor %}
 {% endblock %}

@@ -1,22 +1,20 @@
 {% extends "_layout.html" %}
-{% block title %}Art with {{data.character.name}}{% endblock %}
+{% block title %}Art with {{character.name}}{% endblock %}
 {% block content %}
-    <h1>{{data.character.name}}</h1>
-    {% if data.character.description %}<p>{{data.character.description}}</p>{% endif %}
+    <h1>{{character.name}}</h1>
+    {% if character.description %}<p>{{character.description}}</p>{% endif %}
 
-    {% for species_name, species_root in data.species.items() %}
-        <h2>{{get_species_details(species_name)}}</h2>
-        {% if species_root.species.description %}<p>{{species_root.species.description}}</p>{% endif %}
+    {% for form in character.get_root_forms(limit) %}
+        <h2 id="{{form.form_name}}">{{form.get_friendly_name()}}</h2>
+        {% if form.description %}<p>{{form.description}}</p>{% endif %}
 
-        {{mh.thumbblock(species_root.files, thumbnails, rootprefix="../")}}
+        {{mh.thumbblock(form.submissions_filtered(limit), thumbnails, limit, rootprefix="../")}}
 
-        {% if species_root.subforms %}
-        {% for subform_name, subform_root in species_root.subforms.items() %}
-            <h3>{{subform_name}}</h3>
-            {% if subform_root.subform.description %}<p>{{subform_root.subform.description}}</p>{% endif %}
+        {% for subform in form.children %}
+            <h3 id="{{subform.form_name}}">{{subform.get_friendly_name()}}</h3>
+            {% if subform.description %}<p>{{subform.description}}</p>{% endif %}
             
-            {{mh.thumbblock(subform_root.files, thumbnails, rootprefix="../")}}
+            {{mh.thumbblock(subform.submissions_filtered(limit), thumbnails, limit, rootprefix="../")}}
         {% endfor %}
-        {% endif %}
     {% endfor %}
 {% endblock %}

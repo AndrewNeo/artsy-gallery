@@ -9,5 +9,5 @@
     {% endif %}
     
     <h2>Art</h2>
-    {{mh.thumbblock(files, thumbnails, inartistdir=True, titleonly=True)}}
+    {{mh.thumbblock(artist.submissions_filtered(limit), thumbnails, limit, inartistdir=True, titleonly=True)}}
 {% endblock %}

@@ -1,27 +1,37 @@
 import os
+import re
 import glob
 import json
 import argparse
 import binascii
 import attr
 import cattr
-from typing import Optional
+from typing import Any, Optional, Dict, List, Iterable
 
 
-def remove_parent_path(parent, filepath):
-    return filepath[len(parent) + 1:]
+clean_string_regex = re.compile("[^a-zA-Z0-9]")
 
 
-def get_hash(infile):
+def clean_string(value: str) -> str:
+    return clean_string_regex.sub("", value)
+
+
+def remove_parent_path(parent: str, filepath: str) -> str:
+    return filepath[len(parent) + 1 :]
+
+
+def get_hash(infile: str) -> str:
     if not os.path.exists(infile):
         return None
 
     return "%08X" % (binascii.crc32(open(infile, "rb").read()) & 0xFFFFFFFF)
 
 
-def get_dir_hashes(indir):
+def get_dir_hashes(indir: str) -> Dict[str, str]:
     files = glob.iglob("{}/**".format(indir), recursive=True)
-    return {remove_parent_path(indir, f): get_hash(f) for f in files if os.path.isfile(f)}
+    return {
+        remove_parent_path(indir, f): get_hash(f) for f in files if os.path.isfile(f)
+    }
 
 
 # https://stackoverflow.com/a/27974027/151495
@@ -33,24 +43,60 @@ def clean_empty(d):
     return {k: v for k, v in ((k, clean_empty(v)) for k, v in d.items()) if v}
 
 
-def write_json(outfile, data, clean=False):
+def write_json(outfile: str, data: Any, clean: bool = False) -> None:
     if clean:
         data = clean_empty(cattr.unstructure(data))
 
-    with open(outfile, "w") as f:
+    with open(outfile, "w", encoding="utf-8") as f:
         json.dump(data, f)
+
+
+def build_filename(
+    name: str, extension: str = "html", limit: Optional["LimitFilter"] = None
+) -> str:
+    outstr = name
+
+    if limit:
+        if limit.visibility:
+            outstr = "{}_{}".format(outstr, limit.visibility)
+        if limit.lockout:
+            outstr = "{}_{}".format(outstr, limit.lockout)
+
+    outstr = "{}.{}".format(outstr, extension)
+
+    return outstr
 
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-i", "--indir", help="Input directory", default=None, metavar="INPUT_DIR")
-    parser.add_argument("-o", "--outdir", help="Output directory", default="output", metavar="OUTPUT_DIR")
-    parser.add_argument("-vi", "--visibility", help="Set output visibility", default=None)
-    parser.add_argument("--visibilityOnly", help="Restrict output to visibility level", action="store_true")
+    parser.add_argument(
+        "-i", "--indir", help="Input directory", default=None, metavar="INPUT_DIR"
+    )
+    parser.add_argument(
+        "-o",
+        "--outdir",
+        help="Output directory",
+        default="output",
+        metavar="OUTPUT_DIR",
+    )
+    parser.add_argument(
+        "-vi", "--visibility", help="Set output visibility", default=None
+    )
+    parser.add_argument(
+        "--visibilityOnly",
+        help="Restrict output to visibility level",
+        action="store_true",
+    )
     parser.add_argument("-lo", "--lockout", help="Set output lockout", default=None)
-    parser.add_argument("--lockoutOnly", help="Restrict output to lockout level", action="store_true")
-    parser.add_argument("-f", "--force", help="Force rewrite content", action="store_true")
-    parser.add_argument("-c", "--config", help="Configuration file", default=None, metavar="FILENAME")
+    parser.add_argument(
+        "--lockoutOnly", help="Restrict output to lockout level", action="store_true"
+    )
+    parser.add_argument(
+        "-f", "--force", help="Force rewrite content", action="store_true"
+    )
+    parser.add_argument(
+        "-c", "--config", help="Configuration file", default=None, metavar="FILENAME"
+    )
 
     args = parser.parse_args()
 
@@ -80,23 +126,37 @@ def parse_args():
 
 @attr.s(cmp=True, frozen=True)
 class LimitFilter(object):
-    visibility = cattr.typed(Optional[str], default=None)
-    visibilityOnly = cattr.typed(Optional[bool], default=False)
-    lockout = cattr.typed(Optional[str], default=None)
-    lockoutOnly = cattr.typed(Optional[bool], default=False)
+    visibility = attr.ib(type=Optional[str], default=None)
+    visibilityOnly = attr.ib(type=Optional[bool], default=False)
+    lockout = attr.ib(type=Optional[str], default=None)
+    lockoutOnly = attr.ib(type=Optional[bool], default=False)
 
-    def is_visible(self, f):
-        if (self.visibility == "*") or (not self.visibilityOnly and f.visibility is None) or (f.visibility == self.visibility):
-            if (self.lockout == "*") or (not self.lockoutOnly and f.lockout is None) or (f.lockout == self.lockout):
+    def is_visible(self, f: ["Submission"]):
+        if (
+            (self.visibility == "*")
+            or (not self.visibilityOnly and f.visibility is None)
+            or (f.visibility == self.visibility)
+        ):
+            if (
+                (self.lockout == "*")
+                or (not self.lockoutOnly and f.lockout is None)
+                or (f.lockout == self.lockout)
+            ):
                 return True
 
         return False
 
+    def filter(self, subs: List["Submission"]) -> Iterable["Submission"]:
+        return filter(lambda f: self.is_visible(f), subs)
 
-def get_limit_from_args(args):
+    def get_path_name(self, name: str, extension: Optional[str]) -> str:
+        return build_filename(name, extension, self)
+
+
+def get_limit_from_args(args) -> LimitFilter:
     return LimitFilter(
         visibility=args.visibility,
         visibilityOnly=args.visibilityOnly,
         lockout=args.lockout,
-        lockoutOnly=args.lockoutOnly
+        lockoutOnly=args.lockoutOnly,
     )

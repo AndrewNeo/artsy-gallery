@@ -1,8 +1,9 @@
 {% extends "_layout.html" %}
-{% block title %}Kauko's art with {{description}}{% endblock %}
+{% block title %}Kauko's art including {{species.get_friendly_name()}}{% endblock %}
 {% block content %}
-    <h1>{{description}}</h1>
+    <h1>{{species.get_friendly_name()}}</h1>
+    {% if species.description %}<p>{{ species.description }}</p>{% endif %}
 
     <h2>Art</h2>
-    {{mh.thumbblock(files, thumbnails, rootprefix="../")}}
+    {{mh.thumbblock(species.submissions_filtered(limit), thumbnails, limit, rootprefix="../")}}
 {% endblock %}

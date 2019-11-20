@@ -1,9 +1,9 @@
 {% extends "_layout.html" %}
 {% block title %}Kauko's art from all characters{% endblock %}
 {% block content %}
-    {% for char_name, details in characters.items() %}
-        <h2><a href="_characters/{{char_name}}.html">{{details.character.name}}</a></h2>
+    {% for char in characters %}
+        <h2><a href="{{char.get_path(limit)}}">{{char.name}}</a></h2>
 
-        {{mh.thumbblock(details.files, thumbnails)}}
+        {{mh.thumbblock(char.submissions_filtered(limit), thumbnails, limit)}}
     {% endfor %}
 {% endblock %}

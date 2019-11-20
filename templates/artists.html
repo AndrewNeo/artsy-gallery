@@ -1,10 +1,9 @@
 {% extends "_layout.html" %}
 {% block title %}Kauko's art from all artists{% endblock %}
 {% block content %}
-    {% for artist_file in artists %}
-    {% set artist = artist_file.artist %}
-        <h2 id="{{artist.get_slug()}}"><a href="{{artist.get_slug()}}/">{{artist.name}}</a></h2>
+    {% for artist in artists %}
+        <h2 id="{{artist.slug()}}"><a href="{{artist.get_path(limit)}}">{{artist.name}}</a></h2>
         
-        {{mh.thumbblock(artist_file.files, thumbnails, titleonly=True)}}
+        {{mh.thumbblock(artist.submissions_filtered(limit), thumbnails, limit, titleonly=True)}}
     {% endfor %}
 {% endblock %}

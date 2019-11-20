@@ -1,8 +1,9 @@
 {% extends "_layout.html" %}
-{% block title %}Kauko's art tagged {{tag}}{% endblock %}
+{% block title %}Kauko's art tagged {{tag.get_friendly_name(lower=True)}}{% endblock %}
 {% block content %}
-    <h1>{{description}}</h1>
+    <h1>{{tag.get_friendly_name()}}</h1>
+    {% if tag.description %}<p>{{ tag.description }}</p>{% endif %}
 
     <h2>Art</h2>
-    {{mh.thumbblock(files, thumbnails, rootprefix="../")}}
+    {{mh.thumbblock(tag.submissions_filtered(limit), thumbnails, limit, rootprefix="../")}}
 {% endblock %}

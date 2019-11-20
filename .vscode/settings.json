@@ -11,5 +11,6 @@
         "**/.DS_Store": true,
         "**/__pycache__": true
     },
-    "python.pythonPath": "~\\.virtualenvs\\artsy-vJocsQ8Z\\Scripts\\python"
+    "python.pythonPath": "~\\.virtualenvs\\artsy-2ZkE8avc\\Scripts\\python.exe",
+    "python.formatting.provider": "black"
 }

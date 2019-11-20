@@ -2,6 +2,7 @@
 output/
 testdata/
 config.json
+metadata.sqlite
 test_run.*
 
 # VS Code

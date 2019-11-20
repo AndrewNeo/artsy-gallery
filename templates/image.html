@@ -5,9 +5,9 @@
     {% if linkobj.weasyl %}<li><a href="{{ linkobj.weasyl }}">Weasyl</a></li>{% endif %}
     </ul>
 {% endmacro %}
-{% block title %}{{image.title}} by {{artist.name}}{% endblock %}
+{% block title %}{{image.title}} by {{image.artist.name}}{% endblock %}
 {% block content %}
-    <h1>{{image.title}} by {{artist.name}}</h1>
+    <h1>{{image.title}} by {{image.artist.name}}</h1>
 
     <div class="row">
         <div class="col-sm-12 col-md-7 col-lg-6">
@@ -15,40 +15,36 @@
             {% if image.description %}<p>{{image.description|markdown}}</p>{% endif %}
         </div>
         <div class="col-sm-12 col-md-5 col-lg-6">
+            <h4>Info</h4>
+            <p>
+                Posted on {{ image.get_date_str() }}
+            </p>
+            <br />
+
             <h4>Characters</h4>
             <ul>
-                {% for char_id in image.characters %}
-                {% set char_data = get_character_breakdown(char_id) %}
-                {% set character = char_data.character.get_parent() %}
-                {% if not char_data.character.is_subform() %}
-                <li><a href="../_characters/{{char_data.name}}.html#{{char_data.species_name}}">{{character.name}}</a> ({{get_species_details(char_data.species_name)}})</li>
-                {% else %}
-                {% set character = character.get_parent() %}
-                <li><a href="../_characters/{{char_data.name}}.html#{{char_data.species_name}}_{{char_data.subform_name}}">{{character.name}}</a> ({{char_data.subform_name}} {{get_species_details(char_data.species_name)}})</li>
-                {% endif %}
+                {% for form in image.characters %}
+                <li><a href="../{{form.get_path(limit)}}">{{form.character.name}}</a> ({{form.get_friendly_name(lower=True)}})</li>
                 {% endfor %}
             </ul>
 
             <h4>Tags</h4>
             <ul>
                 {% for tag in image.tags %}
-                {% if not tag.startswith("species#") and not tag.startswith("group#") %}
-                {% set tagdet = get_tag_details(tag, as_none=True) %}
-                <li><a href="../_tags/{{tag|replace('#','_')}}.html"{% if tagdet %} title="{{tagdet}}"{% endif %}>{{tag}}</a></li>
-                {% endif %}
+                <li><a href="../{{tag.get_path(limit)}}"{% if tag.description %} title="{{tag.description}}"{% endif %}>{{tag.get_friendly_name()}}</a></li>
                 {% endfor %}
             </ul>
 
             <h4>Species</h4>
             <ul>
-                {% for species in image.get_species() %}
-                <li><a href="../_species/{{species}}.html">{{get_species_details(species)}}</a></li>
+                {% for species in image.species %}
+                <li><a href="../{{species.get_path(limit)}}">{{species.get_friendly_name(lower=True)}}</a></li>
                 {% endfor %}
             </ul>
 
             {% if sequence %}
                 {% macro format_link(image, seq, title, extra_test=True) %}
-                    {% if seq and seq != image and extra_test %}<li><a href="../{{seq.get_artist().get_slug()}}/{{seq.slug}}.html">{{title}}</a></li>{% endif %}
+                    {% if seq and seq != image and extra_test %}<li><a href="../{{seq.artist.slug()}}/{{seq.slug}}.html">{{title}}</a></li>{% endif %}
                 {% endmacro %}
                 <h4>Sequence</h4>
                 <ul>
@@ -60,13 +56,11 @@
                 </ul>
             {% endif %}
 
-            {% set groups = image.get_groups() %}
-            {% if groups %}
+            {% if image.groups %}
                 <h4>Groups</h4>
                 <ul>
-                    {% for group in groups %}
-                    {% set tagdet = get_tag_details("group#{}".format(group), as_none=True) %}
-                    <li><a href="../_groups/{{group|replace('#','_')}}.html">{% if tagdet %}{{tagdet}}{% else %}{{group}}{% endif %}</a></li>
+                    {% for group in image.groups %}
+                    <li><a href="../{{group.get_path(limit)}}">{% if group.description %}{{group.description}}{% else %}{{group.get_friendly_name()}}{% endif %}</a></li>
                     {% endfor %}
                 </ul>
             {% endif %}
